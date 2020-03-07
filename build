@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+set -e
+
+DEBUG_MODE=
+
+if [ "$1" = "debug" ]; then
+    DEBUG_MODE=debug
+fi
+
+cd net.frontuari.payselection.targetplatform
+./plugin-builder $DEBUG_MODE ../net.frontuari.payselection ../net.frontuari.payselection.test
