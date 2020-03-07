@@ -32,9 +32,9 @@ import org.compiere.util.Env;
 /**
  * Dynamic model factory
  */
-public abstract class CustomModelFactory implements IModelFactory {
+public abstract class FTUModelFactory implements IModelFactory {
 
-	private final static CLogger log = CLogger.getCLogger(CustomModelFactory.class);
+	private final static CLogger log = CLogger.getCLogger(FTUModelFactory.class);
 	private Hashtable<String, Class<?>> cacheModels = new Hashtable<String, Class<?>>();
 
 	/**
@@ -62,7 +62,7 @@ public abstract class CustomModelFactory implements IModelFactory {
 	/**
 	 * Default constructor
 	 */
-	public CustomModelFactory() {
+	public FTUModelFactory() {
 		initialize();
 	}
 

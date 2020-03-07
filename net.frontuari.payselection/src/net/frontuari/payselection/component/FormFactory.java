@@ -18,12 +18,12 @@
 
 package net.frontuari.payselection.component;
 
-import net.frontuari.payselection.base.CustomFormFactory;
+import net.frontuari.payselection.base.FTUFormFactory;
 
 /**
  * Form Factory
  */
-public class FormFactory extends CustomFormFactory {
+public class FormFactory extends FTUFormFactory {
 
 	/**
 	 * For initialize class. Register the custom forms to build. This method is

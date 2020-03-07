@@ -31,9 +31,9 @@ import org.osgi.service.event.Event;
 /**
  * Custom Event Factory
  */
-public abstract class CustomEventFactory extends AbstractEventHandler implements IEventTopics {
+public abstract class FTUEventFactory extends AbstractEventHandler implements IEventTopics {
 
-	private final static CLogger log = CLogger.getCLogger(CustomEventFactory.class);
+	private final static CLogger log = CLogger.getCLogger(FTUEventFactory.class);
 	private List<EventHandlerWrapper> cacheEvents = new ArrayList<EventHandlerWrapper>();
 
 	@Override
@@ -61,7 +61,7 @@ public abstract class CustomEventFactory extends AbstractEventHandler implements
 	}
 
 	private void execEventHandler(Event event, EventHandlerWrapper eventHandlerWrapper, PO po) {
-		CustomEvent customEventHandler;
+		FTUEvent customEventHandler;
 		try {
 			customEventHandler = eventHandlerWrapper.getEventHandler().getConstructor().newInstance();
 			log.info(String.format("CustomEvent created -> %s [Event Type: %s, PO: %s]", eventHandlerWrapper.toString(), event, po));
@@ -78,7 +78,7 @@ public abstract class CustomEventFactory extends AbstractEventHandler implements
 	 * @param tableName    Table name
 	 * @param eventHandler Event listeners
 	 */
-	protected void registerEvent(String eventTopic, String tableName, Class<? extends CustomEvent> eventHandler) {
+	protected void registerEvent(String eventTopic, String tableName, Class<? extends FTUEvent> eventHandler) {
 		boolean notRegistered = cacheEvents.stream().filter(event -> event.getEventTopic() == eventTopic).filter(event -> event.getTableName() == tableName).findFirst().isEmpty();
 
 		if (notRegistered) {
@@ -99,7 +99,7 @@ public abstract class CustomEventFactory extends AbstractEventHandler implements
 	 * @param eventTopic   Event type. Example: IEventTopics.AFTER_LOGIN
 	 * @param eventHandler Event listeners
 	 */
-	protected void registerEvent(String eventTopic, Class<? extends CustomEvent> eventHandler) {
+	protected void registerEvent(String eventTopic, Class<? extends FTUEvent> eventHandler) {
 		registerEvent(eventTopic, null, eventHandler);
 	}
 
@@ -109,9 +109,9 @@ public abstract class CustomEventFactory extends AbstractEventHandler implements
 	class EventHandlerWrapper {
 		private String eventTopic;
 		private String tableName;
-		private Class<? extends CustomEvent> eventHandler;
+		private Class<? extends FTUEvent> eventHandler;
 
-		public EventHandlerWrapper(String eventType, String tableName, Class<? extends CustomEvent> eventHandlerClass) {
+		public EventHandlerWrapper(String eventType, String tableName, Class<? extends FTUEvent> eventHandlerClass) {
 			this.eventTopic = eventType;
 			this.tableName = tableName;
 			this.eventHandler = eventHandlerClass;
@@ -125,7 +125,7 @@ public abstract class CustomEventFactory extends AbstractEventHandler implements
 			return tableName;
 		}
 
-		public Class<? extends CustomEvent> getEventHandler() {
+		public Class<? extends FTUEvent> getEventHandler() {
 			return eventHandler;
 		}
 

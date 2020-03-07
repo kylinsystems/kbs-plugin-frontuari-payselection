@@ -21,25 +21,25 @@ package net.frontuari.payselection.base;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.adempiere.base.IProcessFactory;
 import org.adempiere.exceptions.AdempiereException;
-import org.compiere.process.ProcessCall;
+import org.adempiere.webui.factory.IFormFactory;
+import org.adempiere.webui.panel.ADForm;
 import org.compiere.util.CLogger;
 
 /**
- * Dynamic process factory
+ * Dynamic form factory
  */
-public abstract class CustomProcessFactory implements IProcessFactory {
+public abstract class FTUFormFactory implements IFormFactory {
 
-	private final static CLogger log = CLogger.getCLogger(CustomProcessFactory.class);
-	private List<Class<? extends CustomProcess>> cacheProcess = new ArrayList<Class<? extends CustomProcess>>();
+	private final static CLogger log = CLogger.getCLogger(FTUFormFactory.class);
+	private List<Class<? extends FTUForm>> cacheForm = new ArrayList<Class<? extends FTUForm>>();
 
 	/**
-	 * For initialize class. Register the process to build
+	 * For initialize class. Register the custom forms to build
 	 * 
 	 * <pre>
 	 * protected void initialize() {
-	 * 	registerProcess(PPrintPluginInfo.class);
+	 * 	registerForm(FPrintPluginInfo.class);
 	 * }
 	 * </pre>
 	 */
@@ -50,28 +50,30 @@ public abstract class CustomProcessFactory implements IProcessFactory {
 	 * 
 	 * @param processClass Process class to register
 	 */
-	protected void registerProcess(Class<? extends CustomProcess> processClass) {
-		cacheProcess.add(processClass);
-		log.info(String.format("CustomProcess registered -> %s", processClass.getName()));
+	protected void registerForm(Class<? extends FTUForm> formClass) {
+		cacheForm.add(formClass);
+		log.info(String.format("CustomForm registered -> %s", formClass.getName()));
 	}
 
 	/**
 	 * Default constructor
 	 */
-	public CustomProcessFactory() {
+	public FTUFormFactory() {
 		initialize();
 	}
 
 	@Override
-	public ProcessCall newProcessInstance(String className) {
-		for (int i = 0; i < cacheProcess.size(); i++) {
-			if (className.equals(cacheProcess.get(i).getName())) {
+	public ADForm newFormInstance(String formName) {
+		for (int i = 0; i < cacheForm.size(); i++) {
+			if (formName.equals(cacheForm.get(i).getName())) {
 				try {
-					CustomProcess customProcess = cacheProcess.get(i).getConstructor().newInstance();
-					log.info(String.format("CustomProcess created -> %s", className));
-					return customProcess;
+					FTUForm customForm = cacheForm.get(i).getConstructor().newInstance();
+					log.info(String.format("CustomForm created -> %s", formName));
+					ADForm adForm = customForm.getForm();
+					adForm.setICustomForm(customForm);
+					return adForm;
 				} catch (Exception e) {
-					log.severe(String.format("Class %s can not be instantiated, Exception: %s", className, e));
+					log.severe(String.format("Class %s can not be instantiated, Exception: %s", formName, e));
 					throw new AdempiereException(e);
 				}
 			}

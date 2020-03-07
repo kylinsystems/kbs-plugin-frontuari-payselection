@@ -18,12 +18,12 @@
 
 package net.frontuari.payselection.component;
 
-import net.frontuari.payselection.base.CustomEventFactory;
+import net.frontuari.payselection.base.FTUEventFactory;
 
 /**
  * Event Factory
  */
-public class EventFactory extends CustomEventFactory {
+public class EventFactory extends FTUEventFactory {
 
 	/**
 	 * For initialize class. Register the custom events to build

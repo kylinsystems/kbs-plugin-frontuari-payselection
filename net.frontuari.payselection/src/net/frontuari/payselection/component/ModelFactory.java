@@ -18,12 +18,12 @@
 
 package net.frontuari.payselection.component;
 
-import net.frontuari.payselection.base.CustomModelFactory;
+import net.frontuari.payselection.base.FTUModelFactory;
 
 /**
  * Model Factory
  */
-public class ModelFactory extends CustomModelFactory {
+public class ModelFactory extends FTUModelFactory {
 
 	/**
 	 * For initialize class. Register the models to build

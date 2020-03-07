@@ -27,7 +27,7 @@ import org.compiere.model.GridTab;
 /**
  * Custom IColumnCallout
  */
-public abstract class CustomCallout implements IColumnCallout {
+public abstract class FTUCallout implements IColumnCallout {
 
 	private Properties ctx;
 	private int WindowNo;

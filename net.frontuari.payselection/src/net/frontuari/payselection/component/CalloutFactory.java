@@ -18,12 +18,12 @@
 
 package net.frontuari.payselection.component;
 
-import net.frontuari.payselection.base.CustomCalloutFactory;
+import net.frontuari.payselection.base.FTUCalloutFactory;
 
 /**
  * Callout Factory
  */
-public class CalloutFactory extends CustomCalloutFactory {
+public class CalloutFactory extends FTUCalloutFactory {
 
 	/**
 	 * For initialize class. Register the custom callout to build

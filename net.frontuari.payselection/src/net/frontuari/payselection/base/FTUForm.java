@@ -26,7 +26,7 @@ import org.zkoss.zk.ui.event.EventListener;
 /**
  * Custom class for forms
  */
-public abstract class CustomForm extends ADForm implements IFormController, EventListener<Event> {
+public abstract class FTUForm extends ADForm implements IFormController, EventListener<Event> {
 
 	private static final long serialVersionUID = 1393259812994414770L;
 

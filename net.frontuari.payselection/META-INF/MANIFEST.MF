@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-Category: idempiere-plugin
 Bundle-ManifestVersion: 2
 Bundle-Name: net.frontuari.payselection
-Bundle-SymbolicName: net.frontuari.payselection
+Bundle-SymbolicName: net.frontuari.payselection;singleton:=true
 Bundle-Version: 7.1.0.qualifier
 Bundle-Vendor: Frontuari, C.A. <http://frontuari.net>
 Bundle-ActivationPolicy: lazy

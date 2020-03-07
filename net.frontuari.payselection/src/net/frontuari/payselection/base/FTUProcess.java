@@ -18,61 +18,29 @@
 
 package net.frontuari.payselection.base;
 
-import org.compiere.model.PO;
-import org.osgi.service.event.Event;
+import org.compiere.process.ProcessInfoParameter;
+import org.compiere.process.SvrProcess;
 
 /**
- * Class for custom event
+ * Custom Process
  */
-public abstract class CustomEvent {
-
-	private PO po;
-	private Event event;
+public abstract class FTUProcess extends SvrProcess {
 
 	/**
-	 * Gets the persistent object
+	 * Get parameter
 	 * 
-	 * @return Persistent objectPersistent object
+	 * @param parameterName Parameter name to find
+	 * @return null if no exist
 	 */
-	protected PO getPO() {
-		return po;
+	protected Object getParameter(String parameterName) {
+		ProcessInfoParameter[] para = getParameter();
+		for (int i = 0; i < para.length; i++) {
+			String name = para[i].getParameterName();
+			if (name != null)
+				if (name.equals(parameterName))
+					return para[i].getParameter();
+		}
+		return null;
 	}
-
-	/**
-	 * Gets the event
-	 * 
-	 * @return Event
-	 */
-	protected Event getEvent() {
-		return event;
-	}
-
-	/**
-	 * Gets event type
-	 * 
-	 * @return Event type. Example IEventTopics.DOC_AFTER_COMPLETE
-	 */
-	protected String getEventType() {
-		if (event == null)
-			return null;
-		return event.getTopic();
-	}
-
-	/**
-	 * Executes the event in CustomEventFactory
-	 * 
-	 * @param po    Persistent object
-	 * @param event Event
-	 */
-	protected void doHandleEvent(PO po, Event event) {
-		this.po = po;
-		this.event = event;
-		doHandleEvent();
-	}
-
-	/**
-	 * Custom event execution
-	 */
-	protected abstract void doHandleEvent();
 
 }

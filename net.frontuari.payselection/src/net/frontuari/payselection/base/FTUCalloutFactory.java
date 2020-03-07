@@ -29,9 +29,9 @@ import org.compiere.util.CLogger;
 /**
  * Custom Callout Factory
  */
-public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
+public abstract class FTUCalloutFactory implements IColumnCalloutFactory {
 
-	private final static CLogger log = CLogger.getCLogger(CustomCalloutFactory.class);
+	private final static CLogger log = CLogger.getCLogger(FTUCalloutFactory.class);
 	private List<CalloutWrapper> cacheCallouts = new ArrayList<CalloutWrapper>();
 
 	/**
@@ -40,7 +40,7 @@ public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
 	class CalloutWrapper {
 		private String tableName;
 		private String columnName;
-		private Class<? extends CustomCallout> calloutClass;
+		private Class<? extends FTUCallout> calloutClass;
 
 		public String getTableName() {
 			return tableName;
@@ -50,11 +50,11 @@ public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
 			return columnName;
 		}
 
-		public Class<? extends CustomCallout> getCalloutClass() {
+		public Class<? extends FTUCallout> getCalloutClass() {
 			return calloutClass;
 		}
 
-		public CalloutWrapper(String tableName, String columnName, Class<? extends CustomCallout> calloutClass) {
+		public CalloutWrapper(String tableName, String columnName, Class<? extends FTUCallout> calloutClass) {
 			this.tableName = tableName;
 			this.columnName = columnName;
 			this.calloutClass = calloutClass;
@@ -69,7 +69,7 @@ public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
 	 * @param columnName Column for event
 	 * @param callout    Event
 	 */
-	protected void registerCallout(String tableName, String columnName, Class<? extends CustomCallout> calloutClass) {
+	protected void registerCallout(String tableName, String columnName, Class<? extends FTUCallout> calloutClass) {
 		cacheCallouts.add(new CalloutWrapper(tableName, columnName, calloutClass));
 		log.info(String.format("CustomCallout registered -> %s [Table Name: %s, Column Name: %s]", calloutClass.getName(), tableName, columnName));
 	}
@@ -82,7 +82,7 @@ public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
 			CalloutWrapper calloutWrapper = cacheCallouts.get(i);
 			if (calloutWrapper.getTableName().equals(tableName) && calloutWrapper.getColumnName().equals(columnName)) {
 				try {
-					CustomCallout customCallout = calloutWrapper.getCalloutClass().getConstructor().newInstance();
+					FTUCallout customCallout = calloutWrapper.getCalloutClass().getConstructor().newInstance();
 					log.info(String.format("CustomCallout created -> %s [Table Name: %s, Column Name: %s]", calloutWrapper.getCalloutClass().getName(), tableName, columnName));
 					callouts.add(customCallout);
 				} catch (Exception e) {
@@ -101,7 +101,7 @@ public abstract class CustomCalloutFactory implements IColumnCalloutFactory {
 	/**
 	 * Default constructor
 	 */
-	public CustomCalloutFactory() {
+	public FTUCalloutFactory() {
 		initialize();
 	}
 
