@@ -9,6 +9,7 @@ Bundle-ActivationPolicy: lazy
 Require-Bundle: org.apache.commons.lang3,
  org.adempiere.base,
  org.adempiere.plugin.utils,
+ org.adempiere.ui;bundle-version="7.1.0",
  org.adempiere.ui.zk,
  zcommon,
  zel,
