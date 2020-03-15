@@ -118,6 +118,9 @@ public class PaySelectionCreateCheck extends FTUProcess {
 				if (check.getC_BPartner_ID() == bpartnerID)
 				{
 					//	Add Line
+					if (check.getC_BPartner_ID() != bpartnerID)
+						throw new IllegalArgumentException("Line for different BPartner");
+					
 					if (check.isReceipt() == line.isSOTrx())
 					{
 						check.setPayAmt (check.getPayAmt().add(line.getPayAmt()));
@@ -139,8 +142,6 @@ public class PaySelectionCreateCheck extends FTUProcess {
 						throw new IllegalStateException("Cannot save MPaySelectionLine");
 					return;
 				}
-				else
-					throw new IllegalArgumentException("Line for different BPartner");
 			}
 		}
 		//	Create new

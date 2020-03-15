@@ -543,6 +543,12 @@ public class FTUPaySelect extends FTUForm {
 					if(dt.getDocNoSequence_ID()>0)
 						m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
 				}
+				else if(!dt.get_ValueAsBoolean("IsOrderPrePayment") && !isPrepayment)
+				{
+					m_ps.set_ValueOfColumn("C_DocType_ID", dt.getC_DocType_ID());
+					if(dt.getDocNoSequence_ID()>0)
+						m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
+				}
 				else
 					continue;
 			}
