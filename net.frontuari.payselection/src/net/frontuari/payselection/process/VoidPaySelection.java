@@ -18,7 +18,8 @@ public class VoidPaySelection extends FTUProcess {
 		
 		for(MPaySelectionLine line : ps.getLines(true))
 		{
-			if(line.getC_PaySelectionCheck().getC_Payment_ID() > 0)
+			if(line.getC_PaySelectionCheck().getC_Payment_ID() > 0 
+					&& line.getC_PaySelectionCheck().getC_Payment().getDocStatus().equals("CO"))
 				throw new AdempiereException("@payselectionline.cannot.void@");
 			
 			line.setIsActive(false);

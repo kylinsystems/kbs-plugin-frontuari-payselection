@@ -18,12 +18,14 @@ Require-Bundle: org.apache.commons.lang3,
  zkbind,
  zkplus,
  zul,
- zweb
+ zweb,
+ com.itextpdf;bundle-version="5.5.13"
 Import-Package: org.osgi.service.event
 Service-Component: OSGI-INF/ModelFactory.xml,
  OSGI-INF/EventFactory.xml,
  OSGI-INF/CalloutFactory.xml,
  OSGI-INF/ProcessFactory.xml,
+ OSGI-INF/PaymentExporterFactory.xml,
  OSGI-INF/FormFactory.xml
 Bundle-ClassPath: .,
  lib/freemarker.jar
