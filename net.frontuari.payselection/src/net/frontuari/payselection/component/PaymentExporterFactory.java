@@ -1,6 +1,7 @@
 package net.frontuari.payselection.component;
 
 import net.frontuari.payselection.base.FTUPaymentExporterFactory;
+import net.frontuari.utils.B_BODPE;
 import net.frontuari.utils.B_BancaribePE;
 import net.frontuari.utils.B_BanescoPE;
 import net.frontuari.utils.B_BanplusPE;
@@ -20,6 +21,7 @@ public class PaymentExporterFactory extends FTUPaymentExporterFactory {
 		registerPaymentExporter(B_ProvincialPE.class);
 		registerPaymentExporter(B_VenezuelaPE.class);
 		registerPaymentExporter(B_BancaribePE.class);
+		registerPaymentExporter(B_BODPE.class);
 	}
 
 }
