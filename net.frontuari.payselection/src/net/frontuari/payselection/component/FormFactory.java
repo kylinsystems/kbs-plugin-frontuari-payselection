@@ -19,6 +19,7 @@
 package net.frontuari.payselection.component;
 
 import net.frontuari.payselection.base.FTUFormFactory;
+import net.frontuari.payselection.webui.apps.form.WFTUPayPrint;
 import net.frontuari.payselection.webui.apps.form.WFTUPaySelect;
 
 /**
@@ -39,6 +40,7 @@ public class FormFactory extends FTUFormFactory {
 	@Override
 	protected void initialize() {
 		registerForm(WFTUPaySelect.class);
+		registerForm(WFTUPayPrint.class);
 	}
 
 }

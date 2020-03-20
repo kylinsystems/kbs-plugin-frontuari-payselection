@@ -19,6 +19,8 @@
 package net.frontuari.payselection.component;
 
 import net.frontuari.payselection.base.FTUModelFactory;
+import net.frontuari.payselection.model.FTUMPaySelectionCheck;
+import net.frontuari.payselection.model.FTUMPayment;
 
 /**
  * Model Factory
@@ -36,6 +38,8 @@ public class ModelFactory extends FTUModelFactory {
 	 */
 	@Override
 	protected void initialize() {
+		registerModel(FTUMPaySelectionCheck.Table_Name, FTUMPaySelectionCheck.class);
+		registerModel(FTUMPayment.Table_Name, FTUMPayment.class);
 	}
 
 }
