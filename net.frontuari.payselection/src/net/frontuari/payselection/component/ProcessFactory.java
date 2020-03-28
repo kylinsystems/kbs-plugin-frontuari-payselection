@@ -20,6 +20,7 @@ package net.frontuari.payselection.component;
 
 import net.frontuari.payselection.base.FTUProcessFactory;
 import net.frontuari.payselection.process.PaySelectionCreateCheck;
+import net.frontuari.payselection.process.PaySelectionCreateFrom;
 import net.frontuari.payselection.process.VoidPaySelection;
 import net.frontuari.payselection.process.VoidPaymentBatch;
 
@@ -42,6 +43,7 @@ public class ProcessFactory extends FTUProcessFactory {
 		registerProcess(VoidPaySelection.class);
 		registerProcess(PaySelectionCreateCheck.class);
 		registerProcess(VoidPaymentBatch.class);
+		registerProcess(PaySelectionCreateFrom.class);
 	}
 
 }

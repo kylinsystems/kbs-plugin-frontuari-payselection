@@ -18,7 +18,11 @@
 
 package net.frontuari.payselection.component;
 
+import org.adempiere.base.event.IEventTopics;
+import org.compiere.model.X_C_PaySelectionLine;
+
 import net.frontuari.payselection.base.FTUEventFactory;
+import net.frontuari.payselection.model.FTUPaySelectionEvents;
 
 /**
  * Event Factory
@@ -36,6 +40,7 @@ public class EventFactory extends FTUEventFactory {
 	 */
 	@Override
 	protected void initialize() {
+		registerEvent(IEventTopics.PO_AFTER_NEW, X_C_PaySelectionLine.Table_Name, FTUPaySelectionEvents.class);
 	}
 
 }

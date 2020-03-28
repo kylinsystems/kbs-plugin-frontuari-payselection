@@ -300,7 +300,8 @@ public class FTUMPayment extends MPayment {
 		alloc.setDateAcct(getDateAcct()); // in case date acct is different from datetrx in payment
 		
 		String sql = "SELECT psc.C_BPartner_ID, psl.C_Invoice_ID, psl.IsSOTrx, "	//	1..3
-			+ " psl.PayAmt, psl.DiscountAmt, psl.DifferenceAmt, psl.OpenAmt, psl.WriteOffAmt "  // 4..8
+			+ " psl.PayAmt, psl.DiscountAmt, psl.DifferenceAmt, psl.OpenAmt, psl.WriteOffAmt, "  // 4..8
+			+ " psl.C_Order_ID, psl.IsManual "	// 9..10
 			+ "FROM C_PaySelectionLine psl"
 			+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID) "
 			+ "WHERE psc.C_Payment_ID=?";
@@ -315,7 +316,13 @@ public class FTUMPayment extends MPayment {
 			{
 				int C_BPartner_ID = rs.getInt(1);
 				int C_Invoice_ID = rs.getInt(2);
+				int C_Order_ID = rs.getInt(9);
+				boolean isManual = rs.getBoolean(10);
 				if (C_BPartner_ID == 0 && C_Invoice_ID == 0)
+					continue;
+				if (C_BPartner_ID == 0 && C_Order_ID == 0)
+					continue;
+				if (C_BPartner_ID != 0 && C_Invoice_ID == 0 && C_Order_ID == 0 && isManual)
 					continue;
 				boolean isSOTrx = "Y".equals(rs.getString(3));
 				BigDecimal PayAmt = rs.getBigDecimal(4);
