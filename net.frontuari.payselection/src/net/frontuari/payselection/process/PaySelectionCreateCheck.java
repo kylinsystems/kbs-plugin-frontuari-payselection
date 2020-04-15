@@ -160,9 +160,13 @@ public class PaySelectionCreateCheck extends FTUProcess {
 			MOrder ord = new MOrder(getCtx(), line.get_ValueAsInt("C_Order_ID"), get_TrxName());
 			C_BPartner_ID = ord.getC_BPartner_ID();
 		}
-		else
+		else if(line.getC_Invoice_ID() > 0)
 		{
 			C_BPartner_ID = line.getInvoice().getC_BPartner_ID();
+		}
+		else
+		{
+			C_BPartner_ID = line.get_ValueAsInt("C_BPartner_ID");
 		}
 		check.setC_BPartner_ID (C_BPartner_ID);
 		//

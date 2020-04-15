@@ -71,6 +71,10 @@ public class PaySelectionCreateFrom extends FTUProcess {
 	private boolean		p_isManual = false;
 	/** PayAmt				        */
 	private BigDecimal	p_PayAmt = BigDecimal.ZERO;
+	/** CreateCheck					*/
+	private boolean		p_CreateCheck = false;
+	/**	BPartner Bank Account		*/
+	private int			p_C_BP_BankAccount_ID = 0;
 	
 	private Timestamp p_DueDate = null;
 
@@ -87,6 +91,8 @@ public class PaySelectionCreateFrom extends FTUProcess {
 				;
 			else if (name.equals("IsManual"))
 				p_isManual = "Y".equals(para[i].getParameter());
+			else if (name.equals("IsCreateCheck"))
+				p_CreateCheck = "Y".equals(para[i].getParameter());
 			else if (name.equals("OnlyDiscount"))
 				p_OnlyDiscount = "Y".equals(para[i].getParameter());
 			else if (name.equals("OnlyDue"))
@@ -99,6 +105,8 @@ public class PaySelectionCreateFrom extends FTUProcess {
 				p_PaymentRule = (String)para[i].getParameter();
 			else if (name.equals("C_BPartner_ID"))
 				p_C_BPartner_ID = para[i].getParameterAsInt();
+			else if (name.equals("C_BP_BankAccount_ID"))
+				p_C_BP_BankAccount_ID = para[i].getParameterAsInt();
 			else if (name.equals("C_BP_Group_ID"))
 				p_C_BP_Group_ID = para[i].getParameterAsInt();
 			else if (name.equals("DueDate"))
@@ -150,66 +158,83 @@ public class PaySelectionCreateFrom extends FTUProcess {
 		line.setPayAmt(p_PayAmt);
 		line.saveEx(get_TrxName());
 		
-		//	Create new
-		String PaymentRule = line.getPaymentRule();
-		if (p_PaymentRule != null)
+		if(p_CreateCheck)
 		{
-			if (!X_C_Order.PAYMENTRULE_DirectDebit.equals(PaymentRule))
-				PaymentRule = p_PaymentRule;
-		}
-		MPaySelectionCheck check = new MPaySelectionCheck(getCtx(), 0, get_TrxName());
-		check.setAD_Org_ID(line.getAD_Org_ID());
-		check.setC_PaySelection_ID (line.getC_PaySelection_ID());
-		check.setC_BPartner_ID (p_C_BPartner_ID);
-		//
-		if (X_C_Order.PAYMENTRULE_DirectDebit.equals(PaymentRule))
-		{
-			MBPBankAccount[] bas = MBPBankAccount.getOfBPartner (line.getCtx(), p_C_BPartner_ID); 
-			for (int i = 0; i < bas.length; i++) 
+			//	Create new
+			String PaymentRule = line.getPaymentRule();
+			if (p_PaymentRule != null)
 			{
-				MBPBankAccount account = bas[i];
-				if (account.isDirectDebit())
+				if (!X_C_Order.PAYMENTRULE_DirectDebit.equals(PaymentRule))
+					PaymentRule = p_PaymentRule;
+			}
+			MPaySelectionCheck check = new MPaySelectionCheck(getCtx(), 0, get_TrxName());
+			check.setAD_Org_ID(line.getAD_Org_ID());
+			check.setC_PaySelection_ID (line.getC_PaySelection_ID());
+			check.setC_BPartner_ID (p_C_BPartner_ID);
+			//
+			if (X_C_Order.PAYMENTRULE_DirectDebit.equals(PaymentRule))
+			{
+				if(p_C_BP_BankAccount_ID > 0)
 				{
-					check.setC_BP_BankAccount_ID(account.getC_BP_BankAccount_ID());
-					break;
+					check.setC_BP_BankAccount_ID(p_C_BP_BankAccount_ID);
+				}
+				else
+				{
+					MBPBankAccount[] bas = MBPBankAccount.getOfBPartner (line.getCtx(), p_C_BPartner_ID); 
+					for (int i = 0; i < bas.length; i++) 
+					{
+						MBPBankAccount account = bas[i];
+						if (account.isDirectDebit())
+						{
+							check.setC_BP_BankAccount_ID(account.getC_BP_BankAccount_ID());
+							break;
+						}
+					}	
 				}
 			}
-		}
-		else if (X_C_Order.PAYMENTRULE_DirectDeposit.equals(PaymentRule))
-		{
-			MBPBankAccount[] bas = MBPBankAccount.getOfBPartner (line.getCtx(), p_C_BPartner_ID); 
-			for (int i = 0; i < bas.length; i++) 
+			else if (X_C_Order.PAYMENTRULE_DirectDeposit.equals(PaymentRule))
 			{
-				MBPBankAccount account = bas[i];
-				if (account.isDirectDeposit())
+				if(p_C_BP_BankAccount_ID > 0)
 				{
-					check.setC_BP_BankAccount_ID(account.getC_BP_BankAccount_ID());
-					break;
+					check.setC_BP_BankAccount_ID(p_C_BP_BankAccount_ID);
+				}
+				else
+				{
+					MBPBankAccount[] bas = MBPBankAccount.getOfBPartner (line.getCtx(), p_C_BPartner_ID); 
+					for (int i = 0; i < bas.length; i++) 
+					{
+						MBPBankAccount account = bas[i];
+						if (account.isDirectDeposit())
+						{
+							check.setC_BP_BankAccount_ID(account.getC_BP_BankAccount_ID());
+							break;
+						}
+					}
 				}
 			}
+			check.setPaymentRule (PaymentRule);
+			//
+			check.setIsReceipt(line.isSOTrx());
+			check.setPayAmt (line.getPayAmt());
+			check.setDiscountAmt(line.getDiscountAmt());
+			check.setWriteOffAmt(line.getWriteOffAmt());
+			check.setQty (1);
+			if (!check.isValid())
+			{
+				MBPartner bp = MBPartner.get(getCtx(), p_C_BPartner_ID);
+				StringBuilder msg = new StringBuilder("@NotFound@ @C_BP_BankAccount@: ").append(bp.getName());
+				throw new AdempiereUserError(msg.toString());
+			}
+			if (!check.save())
+				throw new IllegalStateException("Cannot save MPaySelectionCheck");
+			line.setC_PaySelectionCheck_ID(check.getC_PaySelectionCheck_ID());
+			line.setProcessed(true);
+			if (!line.save())
+				throw new IllegalStateException("Cannot save MPaySelectionLine");
+			
+			psel.setProcessed(true);
+			psel.saveEx(get_TrxName());
 		}
-		check.setPaymentRule (PaymentRule);
-		//
-		check.setIsReceipt(line.isSOTrx());
-		check.setPayAmt (line.getPayAmt());
-		check.setDiscountAmt(line.getDiscountAmt());
-		check.setWriteOffAmt(line.getWriteOffAmt());
-		check.setQty (1);
-		if (!check.isValid())
-		{
-			MBPartner bp = MBPartner.get(getCtx(), p_C_BPartner_ID);
-			StringBuilder msg = new StringBuilder("@NotFound@ @C_BP_BankAccount@: ").append(bp.getName());
-			throw new AdempiereUserError(msg.toString());
-		}
-		if (!check.save())
-			throw new IllegalStateException("Cannot save MPaySelectionCheck");
-		line.setC_PaySelectionCheck_ID(check.getC_PaySelectionCheck_ID());
-		line.setProcessed(true);
-		if (!line.save())
-			throw new IllegalStateException("Cannot save MPaySelectionLine");
-		
-		psel.setProcessed(true);
-		psel.saveEx(get_TrxName());
 		
 		return count++;
 	}
