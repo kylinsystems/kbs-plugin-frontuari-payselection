@@ -29,7 +29,6 @@ import org.adempiere.webui.ClientInfo;
 import org.adempiere.webui.LayoutUtils;
 import org.adempiere.webui.apps.AEnv;
 import org.adempiere.webui.apps.ProcessModalDialog;
-import org.adempiere.webui.apps.form.WPayPrint;
 import org.adempiere.webui.component.Button;
 import org.adempiere.webui.component.Checkbox;
 import org.adempiere.webui.component.Column;
@@ -55,6 +54,7 @@ import org.adempiere.webui.panel.CustomForm;
 import org.adempiere.webui.session.SessionManager;
 import org.adempiere.webui.util.ZKUpdateUtil;
 import org.adempiere.webui.window.FDialog;
+import org.compiere.model.MDocType;
 import org.compiere.model.MPaySelection;
 import org.compiere.model.MProcess;
 import org.compiere.model.MSysConfig;
@@ -126,6 +126,8 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	private Listbox fieldPaymentRule = ListboxFactory.newDropdownListbox();
 	private Label labelDtype = new Label();
 	private Listbox fieldDtype = ListboxFactory.newDropdownListbox();
+	private Label labelDtypeTarget = new Label();
+	private Listbox fieldDtypeTarget = ListboxFactory.newDropdownListbox();
 	private Panel southPanel;
 	private Checkbox chkOnePaymentPerInv = new Checkbox();
 	@SuppressWarnings("unused")
@@ -183,8 +185,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		//
 		labelBankBalance.setText(Msg.translate(Env.getCtx(), "CurrentBalance"));
 		labelBalance.setText("0");
+		labelDtypeTarget.setText(Msg.translate(Env.getCtx(), "C_DocTypeTarget_ID"));
+		fieldDtypeTarget.addActionListener(this);
+		ZKUpdateUtil.setHflex(fieldDtypeTarget, "1");
 		prePayment.setText(Msg.translate(Env.getCtx(), "IsOrderPrePayment"));
 		prePayment.addActionListener(this);
+		prePayment.setEnabled(false);
 		onlyDue.setText(Msg.getMsg(Env.getCtx(), "OnlyDue"));
 		dataStatus.setText(" ");
 		dataStatus.setPre(true);
@@ -243,6 +249,15 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			row.appendChild(new Space());
 			row = rows.newRow();
 		}
+		//	Add Document Type Target for PaySelection
+		row.appendChild(labelDtypeTarget.rightAlign());
+		row.appendChild(fieldDtypeTarget);
+		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
+		{
+			row.appendChild(new Space());
+			row = rows.newRow();
+		}
+		//	End
 		row.appendChild(labelBankBalance.rightAlign());
 		Panel balancePanel = new Panel();
 		balancePanel.appendChild(labelCurrency);
@@ -330,6 +345,17 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		for(KeyNamePair pp : docTypeData)
 			fieldDtype.appendItem(pp.getName(), pp);
 		
+		//	Document Type Target
+		ArrayList<KeyNamePair> docTypeTargetData = getDocTypeTargetData();
+		for(KeyNamePair ppt : docTypeTargetData)
+			fieldDtypeTarget.appendItem(ppt.getName(), ppt);
+		
+		if(fieldDtypeTarget.getItemCount() == 0)
+			FDialog.error(m_WindowNo, form, "VPaySelectNoDocumentType");
+		else
+			fieldDtypeTarget.setSelectedIndex(0);
+		//	End
+		
 		prepareTable(miniTable,false);
 		
 		miniTable.getModel().addTableModelListener(this);
@@ -359,6 +385,24 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			fieldPaymentRule.appendItem(vp.getName(), vp);
 		fieldPaymentRule.setSelectedIndex(0);
 	}   //  loadBankInfo
+	
+
+
+	/**
+	 *  Verify Pre-Payment - Check if Document Type Target it's Pre-Payment
+	 *  @author Jorge Colmenarez <mailto:jcolmenarez@frontuari.net>, 2020-05-02 15:54
+	 */
+	private void verifyPrePayment()
+	{		
+		if (fieldDtypeTarget.getItemCount() == 0)
+			return;
+
+		KeyNamePair docType = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
+		
+		MDocType dt = new MDocType(Env.getCtx(), docType.getKey(), null);
+		prePayment.setChecked(dt.get_ValueAsBoolean("IsOrderPrePayment"));
+		
+	}   //  verifyPrePayment
 
 	/**
 	 *  Query and create TableInfo
@@ -426,7 +470,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 
 		else if (e.getTarget() == bCancel)
 			dispose();
-
+		
+		else if(e.getTarget() == fieldDtypeTarget)
+		{
+			verifyPrePayment();
+			loadTableInfo();
+		}
 		//  Update Open Invoices
 		else if (e.getTarget() == fieldBPartner || e.getTarget() == bRefresh || e.getTarget() == fieldDtype
 				|| e.getTarget() == fieldPaymentRule || e.getTarget() == onlyDue || e.getTarget() == onlyPositiveBalance
@@ -501,9 +550,13 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if (m_noSelected == 0)
 			return;
 		
+
+		KeyNamePair docTypeTarget = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
+		int C_DocType_ID = docTypeTarget.getKey();
+		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected());
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID);
 		
 		if(msg != null && msg.length() > 0)		
 		{

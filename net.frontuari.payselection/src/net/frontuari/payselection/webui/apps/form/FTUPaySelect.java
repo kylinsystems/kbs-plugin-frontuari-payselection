@@ -215,6 +215,48 @@ public class FTUPaySelect extends FTUForm {
 		return data;
 	}
 	
+	/**
+	 * Get Document Type Target for PaySelection
+	 * @return ArrayList
+	 */
+	public ArrayList<KeyNamePair> getDocTypeTargetData()
+	{
+		ArrayList<KeyNamePair> data = new ArrayList<KeyNamePair>();
+		String sql = null;
+		/**Document type**/
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try
+		{
+			sql = MRole.getDefault().addAccessSQL(
+				"SELECT doc.c_doctype_id,doc.name FROM c_doctype doc WHERE doc.ad_client_id = ? AND doc.docbasetype in ('PSO') AND doc.ismanual = 'N' ORDER BY doc.isdefault DESC,doc.name ASC, doc.isorderprepayment ASC", "doc",
+				MRole.SQL_FULLYQUALIFIED, MRole.SQL_RO);
+
+			KeyNamePair dt = null;
+			pstmt = DB.prepareStatement(sql, null);
+			pstmt.setInt(1, m_AD_Client_ID);		//	Client
+			rs = pstmt.executeQuery();
+
+			while (rs.next())
+			{
+				dt = new KeyNamePair(rs.getInt(1), rs.getString(2));
+				data.add(dt);
+			}
+		}
+		catch (SQLException e)
+		{
+			log.log(Level.SEVERE, sql, e);
+		}
+		finally
+		{
+			DB.close(rs, pstmt);
+			rs = null;
+			pstmt = null;
+		}
+		
+		return data;
+	}
+	
 	public void prepareTable(IMiniTable miniTable,boolean isPrePayment)
 	{
 		Properties ctx = Env.getCtx();
@@ -517,7 +559,7 @@ public class FTUPaySelect extends FTUForm {
 	/**
 	 *  Generate PaySelection
 	 */
-	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment)
+	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, int C_DocType_ID)
 	{
 		log.info("");
 
@@ -532,23 +574,10 @@ public class FTUPaySelect extends FTUForm {
 			//  Create Header
 			m_ps = new MPaySelection(Env.getCtx(), 0, trxName);
 			//	Set DocumentType and DocumentNo
-			for(MDocType dt : MDocType.getOfDocBaseType(Env.getCtx(), "PSO"))
-			{
-				if(dt.get_ValueAsBoolean("IsOrderPrePayment") && isPrepayment)
-				{
-					m_ps.set_ValueOfColumn("C_DocType_ID", dt.getC_DocType_ID());
-					if(dt.getDocNoSequence_ID()>0)
-						m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
-				}
-				else if(!dt.get_ValueAsBoolean("IsOrderPrePayment") && !isPrepayment)
-				{
-					m_ps.set_ValueOfColumn("C_DocType_ID", dt.getC_DocType_ID());
-					if(dt.getDocNoSequence_ID()>0)
-						m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
-				}
-				else
-					continue;
-			}
+			MDocType dt = new MDocType(Env.getCtx(), C_DocType_ID, trxName);
+			m_ps.set_ValueOfColumn("C_DocType_ID", dt.getC_DocType_ID());
+			if(dt.getDocNoSequence_ID()>0)
+				m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
 			m_ps.setName (m_ps.get_ValueAsString("DocumentNo")
 					+ " - " + paymentRule.getName()
 					+ " - " + payDate);
