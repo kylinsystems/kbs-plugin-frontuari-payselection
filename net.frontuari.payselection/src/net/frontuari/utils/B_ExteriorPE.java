@@ -115,7 +115,8 @@ public class B_ExteriorPE implements PaymentExport {
 				.append(String.format("%0" + 4 + "d", payGenerated))//	Payments Generated
 				.append(totalAmt)									//	Current Date
 				.append(sdf.format(m_PaySelection.getPayDate()))	//	Payment Date
-				.append("01");										//	Constant;
+				.append("01")										//	Constant;
+				.append("                   ");										
 			//	
 			fw.write(line.toString());
 			noLines++;
@@ -152,17 +153,19 @@ public class B_ExteriorPE implements PaymentExport {
 				String amt = String.format("%.2f", mpp.getPayAmt().abs()).replace(".", "").replace(",", "");
 				amt = String.format("%1$" + 12 + "s", amt).replace(" ", "0");
 				//	Line
+				System.out.println(bp[BPA_A_NAME].length());
+				
 				line = new StringBuffer();
 				line
 					//	Credit Detail
 					//	New Line
 					.append(Env.NL)
-					.append(bp[BPA_A_NAME])								//	Business Partner Name for Account
+					.append(bp[BPA_A_NAME].substring(0, 50))								//	Business Partner Name for Account
 					.append(amt)										//	Payment Amount
 					.append(comment)									//	Comment Invoices
 					.append(bp[BPA_A_ACCOUNT].substring(1, 4))			//	Begin Account No
 					.append(bp[BPA_A_ACCOUNT])							//	Account No
-					.append(bp[BPA_A_EMAIL])							//	E-Mail
+					.append(bp[BPA_A_EMAIL].substring(0, 50))							//	E-Mail
 					.append(docNo)										//	Document No
 					.append(bp[BPA_A_IDENT_SSN]);						//	Business PArtner Tax ID
 				fw.write(line.toString());
