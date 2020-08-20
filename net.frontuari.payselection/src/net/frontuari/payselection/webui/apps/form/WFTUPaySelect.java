@@ -20,6 +20,7 @@
 package net.frontuari.payselection.webui.apps.form;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -130,9 +131,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	private Listbox fieldDtypeTarget = ListboxFactory.newDropdownListbox();
 	private Panel southPanel;
 	private Checkbox chkOnePaymentPerInv = new Checkbox();
-	@SuppressWarnings("unused")
-	private ProcessInfo m_pi;
 	private boolean m_isLock;
+	//	Added by Jorge Colmenarez 2020-08-19 support for filter Org
+	private Label organizationLabel = new Label();
+	private Listbox organizationPick = ListboxFactory.newDropdownListbox();
+	//	End Jorge Colmenarez
 	
 	/**
 	 *	Initialize Panel
@@ -205,6 +208,9 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		onlyPositiveBalance.addActionListener(this);
 		onlyPositiveBalance.setChecked(true);
 		
+		//	Added By Jorge Colmenarez 2020-08-19 09:24
+		organizationLabel.setText(Msg.translate(Env.getCtx(), "AD_Org_ID"));
+		
 		//IDEMPIERE-2657, pritesh shah
 		bGenerate.setEnabled(false);
 		bGenerate.addActionListener(this);
@@ -242,6 +248,10 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		Rows rows = parameterLayout.newRows();
 		Row row = rows.newRow();
+		row.appendChild(organizationLabel.rightAlign());
+		//ZKUpdateUtil.setHflex(organizationPick.getComponent(), "true");
+		row.appendChild(organizationPick);
+		row = rows.newRow();
 		row.appendChild(labelBankAccount.rightAlign());
 		row.appendChild(fieldBankAccount);
 		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
@@ -327,6 +337,15 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	 */
 	private void dynInit()
 	{
+
+
+		// Organization filter selection
+		ArrayList<KeyNamePair> orgData = getOrganization();
+		for(KeyNamePair pp : orgData)
+			organizationPick.appendItem(pp.getName(), pp);
+		organizationPick.setSelectedIndex(0);
+		
+		
 		ArrayList<BankInfo> bankAccountData = getBankAccountData();
 		for(BankInfo bi : bankAccountData)
 			fieldBankAccount.appendItem(bi.toString(), bi);
@@ -429,11 +448,13 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		ValueNamePair paymentRule = (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue();
 		KeyNamePair bpartner = (KeyNamePair) fieldBPartner.getSelectedItem().getValue();
 		KeyNamePair docType = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
-
+		//	Added by Jorge Colmenarez, 2020-08-19 11:58 
+		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
+		
 		//	prepareMiniTable
 		prepareTable(miniTable,prePayment.isSelected());
 		//	loadTableInfo
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, miniTable);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
 		
 		calculateSelection();
 		if (ClientInfo.maxHeight(ClientInfo.MEDIUM_HEIGHT-1))
@@ -523,8 +544,26 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	 */
 	public void tableChanged(WTableModelEvent e)
 	{
-		if (e.getColumn() == 0 || e.getColumn() == 11)
+		if (e.getColumn() == 0)
 			calculateSelection();
+		else if(e.getColumn() == 11)
+		{
+			int currRow = e.getLastRow();
+			BigDecimal dueAmt = (BigDecimal) miniTable.getValueAt(currRow, 10); // Column DueAmt
+			BigDecimal payAmt = (BigDecimal) miniTable.getValueAt(currRow, 11); // Column PayAmt
+			if(dueAmt == null)
+				dueAmt = BigDecimal.ZERO;
+			if(payAmt == null)
+				payAmt = BigDecimal.ZERO;
+			if(payAmt.compareTo(dueAmt)>0)
+			{
+				String msg = Msg.translate(Env.getCtx(),"AmountPay")+":["+payAmt+"] > "+Msg.translate(Env.getCtx(),"AmountDue")+":["+dueAmt+"]";
+				FDialog.error(m_WindowNo, form, "Error", msg);
+				miniTable.setValueAt(dueAmt, currRow, 11); // Set Column PayAmt with DueAmt
+			}
+			else
+				calculateSelection();
+		}
 	}   //  valueChanged
 
 	/**
@@ -550,13 +589,15 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if (m_noSelected == 0)
 			return;
 		
+		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
+		int AD_Org_ID = org.getKey();
 
 		KeyNamePair docTypeTarget = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
 		int C_DocType_ID = docTypeTarget.getKey();
 		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID);
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID,AD_Org_ID);
 		
 		if(msg != null && msg.length() > 0)		
 		{
@@ -622,7 +663,6 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	{
 		if (!m_isLock) return;
 		m_isLock = false;
-		m_pi = pi;
 		Clients.clearBusy();	
 		
 		this.dispose();

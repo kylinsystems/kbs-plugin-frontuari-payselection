@@ -216,6 +216,48 @@ public class FTUPaySelect extends FTUForm {
 	}
 	
 	/**
+	 * Get Organization for PaySelection
+	 * @return ArrayList
+	 */
+	public ArrayList<KeyNamePair> getOrganization()
+	{
+		ArrayList<KeyNamePair> data = new ArrayList<KeyNamePair>();
+		String sql = null;
+		/**Document type**/
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try
+		{
+			sql = MRole.getDefault().addAccessSQL(
+				"SELECT o.AD_Org_ID,o.Name FROM AD_Org o WHERE o.IsSummary = 'N' AND o.IsActive = 'Y' ORDER BY o.Value", "o",
+				MRole.SQL_FULLYQUALIFIED, MRole.SQL_RO);
+
+			KeyNamePair dt = new KeyNamePair(0, "");
+			data.add(dt);
+			pstmt = DB.prepareStatement(sql, null);
+			rs = pstmt.executeQuery();
+
+			while (rs.next())
+			{
+				dt = new KeyNamePair(rs.getInt(1), rs.getString(2));
+				data.add(dt);
+			}
+		}
+		catch (SQLException e)
+		{
+			log.log(Level.SEVERE, sql, e);
+		}
+		finally
+		{
+			DB.close(rs, pstmt);
+			rs = null;
+			pstmt = null;
+		}
+		
+		return data;
+	}
+	
+	/**
 	 * Get Document Type Target for PaySelection
 	 * @return ArrayList
 	 */
@@ -400,7 +442,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Query and create TableInfo
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			boolean onlyPositiveBalance, boolean prePayment, KeyNamePair bpartner, KeyNamePair docType, IMiniTable miniTable)
+			boolean onlyPositiveBalance, boolean prePayment, KeyNamePair bpartner, KeyNamePair docType, KeyNamePair org, IMiniTable miniTable)
 	{
 		log.config("");
 		//  not yet initialized
@@ -428,6 +470,12 @@ public class FTUPaySelect extends FTUForm {
 		int c_doctype_id  = dt.getKey();
 		if (c_doctype_id   != 0)
 			sql += " AND i.c_doctype_id =?";
+		
+		//Document Type
+		KeyNamePair o = org;
+		int ad_org_id  = o.getKey();
+		if (ad_org_id != 0)
+			sql += " AND i.ad_org_id =?";
 
 		if (onlyPositiveBalance) {
 			int innerindex = sql.indexOf("INNER");
@@ -467,7 +515,7 @@ public class FTUPaySelect extends FTUForm {
 
 		sql += " ORDER BY 2,3";
 
-		if (log.isLoggable(Level.FINEST)) log.finest(sql + " - C_Currency_ID=" + bi.C_Currency_ID + ", C_BPartner_ID=" + C_BPartner_ID + ", C_doctype_id=" + c_doctype_id  );
+		if (log.isLoggable(Level.FINEST)) log.finest(sql + " - C_Currency_ID=" + bi.C_Currency_ID + ", C_BPartner_ID=" + C_BPartner_ID + ", C_doctype_id=" + c_doctype_id  + ", AD_Org_ID=" + ad_org_id );
 		//  Get Open Invoices
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
@@ -493,6 +541,8 @@ public class FTUPaySelect extends FTUForm {
 				pstmt.setInt(index++, C_BPartner_ID);
 			if (c_doctype_id  != 0)                    //Document type
 				pstmt.setInt(index++, c_doctype_id );
+			if (ad_org_id != 0)                    //Organization
+				pstmt.setInt(index++, ad_org_id );
 			if (onlyPositiveBalance) {
 				pstmt.setString(index++, isSOTrx);			//	IsSOTrx
 				pstmt.setInt(index++, m_AD_Client_ID);		//	Client
@@ -501,7 +551,9 @@ public class FTUPaySelect extends FTUForm {
 				if (C_BPartner_ID != 0)
 					pstmt.setInt(index++, C_BPartner_ID);
 				if (c_doctype_id  != 0)                    //Document type
-					pstmt.setInt(index++, c_doctype_id );				
+					pstmt.setInt(index++, c_doctype_id );
+				if (ad_org_id != 0)                    //Organization
+					pstmt.setInt(index++, ad_org_id);				
 			}
 			//
 			rs = pstmt.executeQuery();
@@ -559,7 +611,7 @@ public class FTUPaySelect extends FTUForm {
 	/**
 	 *  Generate PaySelection
 	 */
-	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, int C_DocType_ID)
+	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, int C_DocType_ID, int AD_Org_ID)
 	{
 		log.info("");
 
@@ -578,7 +630,9 @@ public class FTUPaySelect extends FTUForm {
 			m_ps.set_ValueOfColumn("C_DocType_ID", dt.getC_DocType_ID());
 			if(dt.getDocNoSequence_ID()>0)
 				m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
-			m_ps.setName (m_ps.get_ValueAsString("DocumentNo")
+			//	Set Organization
+			m_ps.setAD_Org_ID(AD_Org_ID);
+			m_ps.setName ((m_ps.get_ValueAsString("DocumentNo")!="" ? m_ps.get_ValueAsString("DocumentNo") : "Orden de Pago")
 					+ " - " + paymentRule.getName()
 					+ " - " + payDate);
 			m_ps.setPayDate (payDate);
