@@ -31,6 +31,7 @@ import org.adempiere.exceptions.DBException;
 import org.compiere.minigrid.ColumnInfo;
 import org.compiere.minigrid.IDColumn;
 import org.compiere.minigrid.IMiniTable;
+import org.compiere.model.MBankAccount;
 import org.compiere.model.MDocType;
 import org.compiere.model.MLookupFactory;
 import org.compiere.model.MLookupInfo;
@@ -323,23 +324,25 @@ public class FTUPaySelect extends FTUForm {
 		if(!isPrePayment)
 		{
 			m_sql = miniTable.prepareTable(new ColumnInfo[] {
-					//  0..5
+					//  0..6
 					new ColumnInfo(" ", "i.C_Invoice_ID", IDColumn.class, false, false, null),
+					new ColumnInfo(Msg.translate(ctx, "AD_Org_ID"), "o.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "DueDate"), "i.DueDate AS DateDue", Timestamp.class, true, true, null),
 					new ColumnInfo(Msg.translate(ctx, "C_BPartner_ID"), "bp.Name", KeyNamePair.class, true, false, "i.C_BPartner_ID"),
 					new ColumnInfo(Msg.translate(ctx, "C_DocType_ID"), "dt.Name", KeyNamePair.class, true, false, "i.C_DocType_ID"),
 					new ColumnInfo(Msg.translate(ctx, "DocumentNo"), "i.DocumentNo", String.class),
 					new ColumnInfo(Msg.translate(ctx, "C_Currency_ID"), "c.ISO_Code", KeyNamePair.class, true, false, "i.C_Currency_ID"),
-					// 6..11
+					// 7..12
 					new ColumnInfo(Msg.translate(ctx, "GrandTotal"), "i.GrandTotal", BigDecimal.class),
 					new ColumnInfo(Msg.translate(ctx, "DiscountAmt"), "currencyConvert(invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)", BigDecimal.class),
 					new ColumnInfo(Msg.translate(ctx, "WriteOffAmt"), "currencyConvert(invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)", BigDecimal.class),
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_InvoicePaySchedule ips WHERE ips.C_InvoicePaySchedule_ID=i.C_InvoicePaySchedule_ID),i.DateInvoiced+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountPay", BigDecimal.class,false)
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountPay", BigDecimal.class,false) 
 					},
 					//	FROM
 					"C_Invoice_v i"
+					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
@@ -358,23 +361,25 @@ public class FTUPaySelect extends FTUForm {
 		else
 		{
 			m_sql = miniTable.prepareTable(new ColumnInfo[] {
-					//  0..5
+					//  0..6
 					new ColumnInfo(" ", "i.C_Order_ID", IDColumn.class, false, false, null),
+					new ColumnInfo(Msg.translate(ctx, "AD_Org_ID"), "o.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "DueDate"), "i.DueDate AS DateDue", Timestamp.class, true, true, null),
 					new ColumnInfo(Msg.translate(ctx, "C_BPartner_ID"), "bp.Name", KeyNamePair.class, true, false, "i.C_BPartner_ID"),
 					new ColumnInfo(Msg.translate(ctx, "C_DocType_ID"), "dt.Name", KeyNamePair.class, true, false, "i.C_DocType_ID"),
 					new ColumnInfo(Msg.translate(ctx, "DocumentNo"), "i.DocumentNo", String.class),
 					new ColumnInfo(Msg.translate(ctx, "C_Currency_ID"), "c.ISO_Code", KeyNamePair.class, true, false, "i.C_Currency_ID"),
-					// 6..11
+					// 7..12
 					new ColumnInfo(Msg.translate(ctx, "GrandTotal"), "i.GrandTotal", BigDecimal.class),
 					new ColumnInfo(Msg.translate(ctx, "DiscountAmt"), "currencyConvert(ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)", BigDecimal.class),
 					new ColumnInfo(Msg.translate(ctx, "WriteOffAmt"), "currencyConvert(ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)", BigDecimal.class),
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_OrderPaySchedule ips WHERE ips.C_OrderPaySchedule_ID=i.C_OrderPaySchedule_ID),i.DateOrdered+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountPay", BigDecimal.class,false)
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0) AS AmountPay", BigDecimal.class,false) 
 					},
 					//	FROM
 					"FTU_Order_v i"
+					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
@@ -483,6 +488,7 @@ public class FTUPaySelect extends FTUForm {
 
 			//Replace original aliases with new aliases
 			subWhereClause = subWhereClause.replaceAll("\\bi\\b", "i1");
+			subWhereClause = subWhereClause.replaceAll("\\bo\\b", "o1");
 			subWhereClause = subWhereClause.replaceAll("\\bbp\\b", "bp1");
 			subWhereClause = subWhereClause.replaceAll("\\bc\\b", "c1");
 			subWhereClause = subWhereClause.replaceAll("\\bp\\b", "p1");
@@ -590,7 +596,7 @@ public class FTUPaySelect extends FTUForm {
 			IDColumn id = (IDColumn)miniTable.getValueAt(i, 0);
 			if (id.isSelected())
 			{
-				BigDecimal amt = (BigDecimal)miniTable.getValueAt(i, 11);
+				BigDecimal amt = (BigDecimal)miniTable.getValueAt(i, 12);
 				if (amt != null)
 					invoiceAmt = invoiceAmt.add(amt);
 				m_noSelected++;
@@ -611,7 +617,7 @@ public class FTUPaySelect extends FTUForm {
 	/**
 	 *  Generate PaySelection
 	 */
-	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, int C_DocType_ID, int AD_Org_ID)
+	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, int C_DocType_ID)
 	{
 		log.info("");
 
@@ -631,7 +637,8 @@ public class FTUPaySelect extends FTUForm {
 			if(dt.getDocNoSequence_ID()>0)
 				m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
 			//	Set Organization
-			m_ps.setAD_Org_ID(AD_Org_ID);
+			MBankAccount ba = new MBankAccount(Env.getCtx(), bi.C_BankAccount_ID, null);
+			m_ps.setAD_Org_ID(ba.getAD_Org_ID());
 			m_ps.setName ((m_ps.get_ValueAsString("DocumentNo")!="" ? m_ps.get_ValueAsString("DocumentNo") : "Orden de Pago")
 					+ " - " + paymentRule.getName()
 					+ " - " + payDate);
@@ -653,10 +660,10 @@ public class FTUPaySelect extends FTUForm {
 					line += 10;
 					MPaySelectionLine psl = new MPaySelectionLine (m_ps, line, PaymentRule);
 					int C_Invoice_ID = id.getRecord_ID().intValue();
-					BigDecimal OpenAmt = (BigDecimal)miniTable.getValueAt(i, 10);
-					BigDecimal DiscountAmt = (BigDecimal)miniTable.getValueAt(i, 7);
-					BigDecimal WriteOffAmt = (BigDecimal)miniTable.getValueAt(i, 8);
-					BigDecimal PayAmt = (BigDecimal)miniTable.getValueAt(i, 11);
+					BigDecimal OpenAmt = (BigDecimal)miniTable.getValueAt(i, 11);
+					BigDecimal DiscountAmt = (BigDecimal)miniTable.getValueAt(i, 8);
+					BigDecimal WriteOffAmt = (BigDecimal)miniTable.getValueAt(i, 9);
+					BigDecimal PayAmt = (BigDecimal)miniTable.getValueAt(i, 12);
 					boolean isSOTrx = false;
 					if (paymentRule != null && X_C_Order.PAYMENTRULE_DirectDebit.equals(paymentRule.getValue()))
 						isSOTrx = true;

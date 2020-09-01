@@ -546,11 +546,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	{
 		if (e.getColumn() == 0)
 			calculateSelection();
-		else if(e.getColumn() == 11)
+		else if(e.getColumn() == 12)
 		{
 			int currRow = e.getLastRow();
-			BigDecimal dueAmt = (BigDecimal) miniTable.getValueAt(currRow, 10); // Column DueAmt
-			BigDecimal payAmt = (BigDecimal) miniTable.getValueAt(currRow, 11); // Column PayAmt
+			BigDecimal dueAmt = (BigDecimal) miniTable.getValueAt(currRow, 11); // Column DueAmt
+			BigDecimal payAmt = (BigDecimal) miniTable.getValueAt(currRow, 12); // Column PayAmt
 			if(dueAmt == null)
 				dueAmt = BigDecimal.ZERO;
 			if(payAmt == null)
@@ -559,7 +559,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			{
 				String msg = Msg.translate(Env.getCtx(),"AmountPay")+":["+payAmt+"] > "+Msg.translate(Env.getCtx(),"AmountDue")+":["+dueAmt+"]";
 				FDialog.error(m_WindowNo, form, "Error", msg);
-				miniTable.setValueAt(dueAmt, currRow, 11); // Set Column PayAmt with DueAmt
+				miniTable.setValueAt(dueAmt, currRow, 12); // Set Column PayAmt with DueAmt
 			}
 			else
 				calculateSelection();
@@ -589,15 +589,16 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if (m_noSelected == 0)
 			return;
 		
-		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
-		int AD_Org_ID = org.getKey();
+		//	Remove support for set from Org selected, change by org from account
+		//KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
+		//int AD_Org_ID = org.getKey();
 
 		KeyNamePair docTypeTarget = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
 		int C_DocType_ID = docTypeTarget.getKey();
 		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID,AD_Org_ID);
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID);
 		
 		if(msg != null && msg.length() > 0)		
 		{
