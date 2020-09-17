@@ -23,6 +23,7 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.logging.Level;
 
 import org.adempiere.util.Callback;
@@ -377,9 +378,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		prepareTable(miniTable,false);
 		
-		miniTable.getModel().addTableModelListener(this);
-		//
-		fieldPayDate.setMandatory(true);
+		miniTable.getModel().addTableModelListener(this);		
 		fieldPayDate.setValue(new Timestamp(System.currentTimeMillis()));
 	}   //  dynInit
 

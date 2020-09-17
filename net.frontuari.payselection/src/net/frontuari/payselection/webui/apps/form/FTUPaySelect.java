@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Properties;
 import java.util.logging.Level;
 
@@ -453,7 +454,17 @@ public class FTUPaySelect extends FTUForm {
 		//  not yet initialized
 		if (m_sql == null)
 			return;
-
+		// added by Adonis Castellanos to fix error of currency convert function with the date sended with hours,minutes and seconds 
+		Calendar cal = Calendar.getInstance(); 
+		cal.setTime(payDate);
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		long time = cal.getTimeInMillis();		
+		payDate = new Timestamp(time);
+		// End 
+		
 		String sql = m_sql;
 		//  Parameters
 		String isSOTrx = "N";
