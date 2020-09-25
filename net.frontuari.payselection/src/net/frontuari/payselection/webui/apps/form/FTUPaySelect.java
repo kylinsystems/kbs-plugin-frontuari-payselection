@@ -348,7 +348,12 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
-					+ " LEFT JOIN (SELECT psl.C_Invoice_ID,SUM(psl.PayAmt) AS PayAmt FROM C_PaySelectionLine psl "  
+					+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
+					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+					+ "	FROM C_PaySelectionLine psl "
+					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
+					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
+					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
 					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) ",
@@ -385,7 +390,12 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
-					+ " LEFT JOIN (SELECT psl.C_Order_ID,SUM(psl.PayAmt) AS PayAmt FROM C_PaySelectionLine psl "  
+					+ " LEFT JOIN (SELECT psl.C_Order_ID,"
+					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+					+ "	FROM C_PaySelectionLine psl "
+					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
+					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
+					+ " INNER JOIN C_Order i ON psl.C_Order_ID = i.C_Order_ID "  
 					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "   
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.C_Order_ID) psl ON (i.C_Order_ID=psl.C_Order_ID) ",
@@ -448,7 +458,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Query and create TableInfo
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			boolean onlyPositiveBalance, boolean prePayment, KeyNamePair bpartner, KeyNamePair docType, KeyNamePair org, IMiniTable miniTable)
+			boolean onlyPositiveBalance, boolean prePayment, int C_BPartner_ID, KeyNamePair docType, KeyNamePair org, IMiniTable miniTable)
 	{
 		log.config("");
 		//  not yet initialized
@@ -477,8 +487,8 @@ public class FTUPaySelect extends FTUForm {
 		if (onlyDue)
 			sql += " AND i.DueDate <= ?";
 		//
-		KeyNamePair pp = bpartner;
-		int C_BPartner_ID = pp.getKey();
+		//KeyNamePair pp = bpartner;
+		//int C_BPartner_ID = pp.getKey();
 		if (C_BPartner_ID != 0)
 			sql += " AND i.C_BPartner_ID=?";
 		//Document Type
