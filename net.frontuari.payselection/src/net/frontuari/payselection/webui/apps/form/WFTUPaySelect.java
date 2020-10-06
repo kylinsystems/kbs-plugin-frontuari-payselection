@@ -19,8 +19,6 @@
  *****************************************************************************/
 package net.frontuari.payselection.webui.apps.form;
 
-import static org.compiere.model.SystemIDs.COLUMN_C_INVOICE_C_BPARTNER_ID;
-
 import java.io.File;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -68,6 +66,7 @@ import org.compiere.model.MSysConfig;
 import org.compiere.model.X_C_PaySelection;
 import org.compiere.process.ProcessInfo;
 import org.compiere.process.ProcessInfoParameter;
+import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
@@ -120,6 +119,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	private Checkbox onlyDue = new Checkbox();
 	private Checkbox onlyPositiveBalance = new Checkbox();
 	private Checkbox prePayment = new Checkbox();
+	private Checkbox Manual = new Checkbox();
 	private Label labelBPartner = new Label();
 	//private Listbox fieldBPartner = ListboxFactory.newDropdownListbox();
 	private WSearchEditor bpartnerSearch = null;
@@ -198,7 +198,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		labelPayDate.setText(Msg.translate(Env.getCtx(), "PayDate"));
 		labelPaymentRule.setText(Msg.translate(Env.getCtx(), "PaymentRule"));
 		fieldPaymentRule.addActionListener(this);
-		labelDtype.setText(Msg.translate(Env.getCtx(), "C_DocType_ID"));
+		labelDtype.setText(Msg.translate(Env.getCtx(), "FTU_PaymentRequest_ID"));
 		fieldDtype.addActionListener(this);
 		ZKUpdateUtil.setHflex(fieldDtype, "1");
 		//
@@ -210,6 +210,9 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		prePayment.setText(Msg.translate(Env.getCtx(), "IsOrderPrePayment"));
 		prePayment.addActionListener(this);
 		prePayment.setEnabled(false);
+		Manual.setText(Msg.translate(Env.getCtx(), "IsManual"));
+		Manual.addActionListener(this);
+		Manual.setEnabled(false);
 		onlyDue.setText(Msg.getMsg(Env.getCtx(), "OnlyDue"));
 		dataStatus.setText(" ");
 		dataStatus.setPre(true);
@@ -275,7 +278,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			row.appendChild(new Space());
 			row = rows.newRow();
 		}
-		//	Add Document Type Target for PaySelection
+		//	Add Document Type Target for Payment Request
 		row.appendChild(labelDtypeTarget.rightAlign());
 		row.appendChild(fieldDtypeTarget);
 		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
@@ -305,6 +308,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		row.appendChild(new Space());		
 		row.appendChild(onlyDue);
 		row.appendCellChild(prePayment);
+		row.appendCellChild(Manual);
 		row.appendChild(new Space());
 		
 		row = rows.newRow();
@@ -391,10 +395,13 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if(fieldDtypeTarget.getItemCount() == 0)
 			FDialog.error(m_WindowNo, form, "VPaySelectNoDocumentType");
 		else
+		{
 			fieldDtypeTarget.setSelectedIndex(0);
+			verifyPrePayment();
+		}
 		//	End
 		
-		prepareTable(miniTable,false);
+		prepareTable(miniTable,false,false);
 		
 		miniTable.getModel().addTableModelListener(this);		
 		fieldPayDate.setValue(new Timestamp(System.currentTimeMillis()));
@@ -436,7 +443,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		KeyNamePair docType = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
 		
 		MDocType dt = new MDocType(Env.getCtx(), docType.getKey(), null);
-		prePayment.setChecked(dt.get_ValueAsBoolean("IsOrderPrePayment"));
+		
+		boolean prepayment = (dt.get_ValueAsString("RequestType").equals("POO") ? true : false);
+		boolean manual = (dt.get_ValueAsString("RequestType").equals("PRM") ? true : false);
+		
+		prePayment.setChecked(prepayment);
+		Manual.setChecked(manual);
 		
 	}   //  verifyPrePayment
 
@@ -464,15 +476,15 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		ValueNamePair paymentRule = (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue();
 		//KeyNamePair bpartner = (KeyNamePair) fieldBPartner.getSelectedItem().getValue();
-		KeyNamePair docType = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
+		KeyNamePair PaymentRequest = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
 		//	Added by Jorge Colmenarez, 2020-08-19 11:58 
 		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
 		
 		//	prepareMiniTable
-		prepareTable(miniTable,prePayment.isSelected());
+		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected());
 		//	loadTableInfo
 		//loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), m_C_BPartner_ID, docType, org, miniTable);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(), m_C_BPartner_ID, PaymentRequest, org, miniTable);
 		
 		calculateSelection();
 		if (ClientInfo.maxHeight(ClientInfo.MEDIUM_HEIGHT-1))
@@ -524,7 +536,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 
 		else if (DialogEvents.ON_WINDOW_CLOSE.equals(e.getName())) {
 			//  Ask to Open Print Form
-			/*FDialog.ask(m_WindowNo, form, "VPaySelectPrint?", new Callback<Boolean>() {
+			FDialog.ask(m_WindowNo, form, "VPaySelectPrint?", new Callback<Boolean>() {
 
 				@Override
 				public void onCallback(Boolean result) 
@@ -532,17 +544,18 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 					if (result)
 					{
 						//  Start PayPrint
-						int AD_Form_ID = FORM_PAYMENT_PRINT_EXPORT;	//	Payment Print/Export
+						
+						int AD_Form_ID = DB.getSQLValue(null, "SELECT AD_Form_ID FROM AD_Form WHERE AD_Form_UU = 'e928d911-2108-416c-981a-71fb4fd46d87'");	//	FTU Payment Print/Export
 						ADForm form = SessionManager.getAppDesktop().openForm(AD_Form_ID);
 						if (m_ps != null)
 						{
-							WPayPrint pp = (WPayPrint) form.getICustomForm();
+							WFTUPayPrint pp = (WFTUPayPrint) form.getICustomForm();
 							pp.setPaySelection(m_ps.getC_PaySelection_ID());
 						}
 					}
 					
 				}
-			});*/
+			});
 			AEnv.zoom(MPaySelection.Table_ID, m_ps.getC_PaySelection_ID());
 		}
 		else if (e.getTarget().equals(chkOnePaymentPerInv))
@@ -558,7 +571,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if (e.getSource() == fieldPayDate)
 			loadTableInfo();
 		//  BPartner
-		if (name.equals("C_BPartner_ID"))
+		if (name.equals("C_BPartner_ID") && value != null)
 		{
 			bpartnerSearch.setValue(value);
 			m_C_BPartner_ID = ((Integer)value).intValue();
@@ -626,7 +639,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),C_DocType_ID);
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),Manual.isSelected(),C_DocType_ID);
 		
 		if(msg != null && msg.length() > 0)		
 		{

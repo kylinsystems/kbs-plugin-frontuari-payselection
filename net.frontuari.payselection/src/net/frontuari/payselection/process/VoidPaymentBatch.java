@@ -15,6 +15,7 @@ import org.compiere.model.MPaymentBatch;
 import org.compiere.util.DB;
 
 import net.frontuari.payselection.base.FTUProcess;
+import net.frontuari.payselection.model.MFTUPaymentRequestLine;
 
 public class VoidPaymentBatch extends FTUProcess {
 
@@ -44,6 +45,12 @@ public class VoidPaymentBatch extends FTUProcess {
 				{
 					psl.setIsActive(false);
 					psl.saveEx(get_TrxName());
+					if(psl.get_ValueAsInt("FTU_PaymentRequest_ID") > 0)
+					{
+						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(getCtx(), psl.get_ValueAsInt("FTU_PaymentRequest_ID"), get_TrxName());
+						prl.setIsPrepared(false);
+						prl.saveEx(get_TrxName());
+					}
 				}
 				//	Void PaySelection
 				MPaySelection ps = psc.getParent();

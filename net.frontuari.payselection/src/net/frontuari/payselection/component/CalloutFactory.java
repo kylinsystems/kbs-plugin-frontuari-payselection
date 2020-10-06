@@ -19,6 +19,8 @@
 package net.frontuari.payselection.component;
 
 import net.frontuari.payselection.base.FTUCalloutFactory;
+import net.frontuari.payselection.callout.CalloutPaymentRequest;
+import net.frontuari.payselection.model.MFTUPaymentRequest;
 
 /**
  * Callout Factory
@@ -36,6 +38,7 @@ public class CalloutFactory extends FTUCalloutFactory {
 	 */
 	@Override
 	protected void initialize() {
+		registerCallout(MFTUPaymentRequest.Table_Name, MFTUPaymentRequest.COLUMNNAME_C_DocType_ID, CalloutPaymentRequest.class);
 	}
 
 }

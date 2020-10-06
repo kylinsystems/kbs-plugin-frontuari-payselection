@@ -12,6 +12,7 @@ import java.util.logging.Level;
 
 import org.adempiere.exceptions.AdempiereException;
 import org.compiere.acct.Doc;
+import org.compiere.model.MConversionType;
 import org.compiere.model.MDepositBatch;
 import org.compiere.model.MDepositBatchLine;
 import org.compiere.model.MDocType;
@@ -19,7 +20,6 @@ import org.compiere.model.MInvoice;
 import org.compiere.model.MPaySelection;
 import org.compiere.model.MPaySelectionCheck;
 import org.compiere.model.MPaySelectionLine;
-import org.compiere.model.MPayment;
 import org.compiere.model.MPaymentBatch;
 import org.compiere.model.X_C_Payment;
 import org.compiere.process.DocAction;
@@ -122,6 +122,7 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 				payment.setDateTrx(check.getParent().getPayDate());
 				payment.setDateAcct(payment.getDateTrx()); // globalqss [ 2030685 ]
 				payment.setC_BPartner_ID(check.getC_BPartner_ID());
+				payment.setC_ConversionType_ID(MConversionType.getDefault(check.getAD_Client_ID()));
 				//	Link to Batch
 				if (batch != null)
 				{
@@ -142,9 +143,15 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 						payment.setC_Order_ID (psl.get_ValueAsInt("C_Order_ID"));
 						payment.setIsPrepayment(true);
 					}
-					else
+					else if(psl.getC_Invoice_ID() > 0)
 					{
 						payment.setC_Invoice_ID (psl.getC_Invoice_ID());
+					}
+					//	Manual
+					else
+					{
+						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
+						payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
 					}
 					payment.setDiscountAmt (psl.getDiscountAmt());
 					payment.setWriteOffAmt (psl.getWriteOffAmt());
@@ -154,6 +161,18 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 				}
 				else
 				{
+					MPaySelection ps = check.getParent();
+					MDocType dt = new MDocType(Env.getCtx(), ps.get_ValueAsInt("C_DocType_ID"), trxName);
+					if(dt.get_ValueAsBoolean("IsOrderPrePayment"))
+					{
+						payment.setIsPrepayment(true);
+					}
+					else if(dt.get_ValueAsBoolean("IsManual"))
+					{
+						MPaySelectionLine psl = psls[0];
+						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
+						payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
+					}
 					payment.setWriteOffAmt(Env.ZERO);
 					payment.setDiscountAmt(Env.ZERO);
 				}

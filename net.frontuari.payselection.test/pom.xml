@@ -6,7 +6,7 @@
 		<groupId>org.idempiere</groupId>
 		<artifactId>org.idempiere.parent</artifactId>
 		<version>7.1.0-SNAPSHOT</version>
-		<relativePath>../../org.idempiere.parent/pom.xml</relativePath>
+		<relativePath>../../../idempiere-release-7.1/org.idempiere.parent/pom.xml</relativePath>
 	</parent>
 	<artifactId>net.frontuari.payselection.test</artifactId>
 	<packaging>eclipse-plugin</packaging>

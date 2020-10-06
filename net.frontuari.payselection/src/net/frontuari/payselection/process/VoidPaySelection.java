@@ -4,6 +4,7 @@ import org.adempiere.exceptions.AdempiereException;
 import org.compiere.model.MPaySelection;
 import org.compiere.model.MPaySelectionLine;
 import net.frontuari.payselection.base.FTUProcess;
+import net.frontuari.payselection.model.MFTUPaymentRequestLine;
 
 public class VoidPaySelection extends FTUProcess {
 
@@ -24,6 +25,12 @@ public class VoidPaySelection extends FTUProcess {
 			
 			line.setIsActive(false);
 			line.saveEx(get_TrxName());
+			if(line.get_ValueAsInt("FTU_PaymentRequest_ID") > 0)
+			{
+				MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(getCtx(), line.get_ValueAsInt("FTU_PaymentRequest_ID"), get_TrxName());
+				prl.setIsPrepared(false);
+				prl.saveEx(get_TrxName());
+			}
 		}
 		
 		ps.setIsActive(false);

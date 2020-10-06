@@ -54,7 +54,7 @@ public class FileTemplateBuilderTest {
 		String result = builder.file("resources/xml/xml-invoice.xml").inject("invoice", invoice).build();
 		assertThat(result).contains("<name>" + randomName + "</name>");
 		assertThat(result).contains("<id>" + randomId + "</id>");
-		assertThat(result).contains("<product name=\"" + randomProduct + "\" price=\"" + randomPrice + "\"/>");
+		assertThat(result).contains("<product name=\"" + randomProduct + "\" price=\"" + String.valueOf(randomPrice).replace(".", ",") + "\"/>");
 	}
 
 	public class Invoice {
