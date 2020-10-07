@@ -454,7 +454,7 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 					+ " GROUP BY prl.C_Invoice_ID) prl ON (i.C_Invoice_ID = prl.C_Invoice_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND IsPaid='N'"
-					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) != 0" //Check that AmountDue <> 0
+					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		}
@@ -496,7 +496,7 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 					+ " GROUP BY prl.C_Order_ID) prl ON (i.C_Order_ID = prl.C_Order_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND i.C_Invoice_ID IS NULL "
-					+ " AND (ftuOrderOpen(i.C_Order_ID, i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) != 0" //Check that AmountDue <> 0
+					+ " AND (ftuOrderOpen(i.C_Order_ID, i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		}
