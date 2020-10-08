@@ -425,6 +425,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_Currency prc ON (pr.C_Currency_ID=prc.C_Currency_ID)"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
+					+ " INNER JOIN C_BP_BankAccount bpba ON (prl.C_BP_BankAccount_ID=bpba.C_BP_BankAccount_ID)"
+					+ " INNER JOIN C_Bank b ON (bpba.C_Bank_ID=b.C_Bank_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
@@ -485,6 +487,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_Currency prc ON (pr.C_Currency_ID=prc.C_Currency_ID)"
 					+ " INNER JOIN AD_Org o ON (pr.AD_Org_ID=o.AD_Org_ID)"
 					+ " INNER JOIN C_BPartner bp ON (prl.C_BPartner_ID=bp.C_BPartner_ID)"
+					+ " INNER JOIN C_BP_BankAccount bpba ON (prl.C_BP_BankAccount_ID=bpba.C_BP_BankAccount_ID)"
+					+ " INNER JOIN C_Bank b ON (bpba.C_Bank_ID=b.C_Bank_ID)"
 					+ " LEFT JOIN (SELECT psl.FTU_PaymentRequestLine_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,pr.C_Currency_ID,ps.PayDate,p.C_ConversionType_ID,psl.AD_Client_ID,psl.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
@@ -619,6 +623,8 @@ public class FTUPaySelect extends FTUForm {
 			subWhereClause = subWhereClause.replaceAll("\\bi\\b", "i1");
 			subWhereClause = subWhereClause.replaceAll("\\bo\\b", "o1");
 			subWhereClause = subWhereClause.replaceAll("\\bbp\\b", "bp1");
+			subWhereClause = subWhereClause.replaceAll("\\bbpba\\b", "bpba1");
+			subWhereClause = subWhereClause.replaceAll("\\bb\\b", "b1");
 			subWhereClause = subWhereClause.replaceAll("\\bc\\b", "c1");
 			subWhereClause = subWhereClause.replaceAll("\\bp\\b", "p1");
 			subWhereClause = subWhereClause.replaceAll("\\bpslpay\\b", "pslpay1");

@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -18,6 +19,8 @@ import org.adempiere.webui.component.Grid;
 import org.adempiere.webui.component.GridFactory;
 import org.adempiere.webui.component.Label;
 import org.adempiere.webui.component.ListModelTable;
+import org.adempiere.webui.component.Listbox;
+import org.adempiere.webui.component.ListboxFactory;
 import org.adempiere.webui.component.Panel;
 import org.adempiere.webui.component.Row;
 import org.adempiere.webui.component.Rows;
@@ -31,10 +34,12 @@ import org.compiere.model.GridTab;
 import org.compiere.model.MBPBankAccount;
 import org.compiere.model.MBPartner;
 import org.compiere.model.MColumn;
+import org.compiere.model.MDocType;
 import org.compiere.model.MInvoice;
 import org.compiere.model.MLookup;
 import org.compiere.model.MLookupFactory;
 import org.compiere.model.MOrder;
+import org.compiere.model.MRole;
 import org.adempiere.webui.event.ValueChangeEvent;
 import org.adempiere.webui.event.ValueChangeListener;
 import org.compiere.util.CLogger;
@@ -44,13 +49,15 @@ import org.compiere.util.Env;
 import org.compiere.util.KeyNamePair;
 import org.compiere.util.Msg;
 import org.zkoss.zk.ui.Component;
+import org.zkoss.zk.ui.event.Event;
+import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zul.Space;
 
 import net.frontuari.payselection.model.MFTUPaymentRequest;
 import net.frontuari.payselection.model.MFTUPaymentRequestLine;
 import net.frontuari.payselection.model.X_FTU_PaymentRequest;
 
-public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener {
+public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event>, ValueChangeListener {
 	
 	private WCreateFromWindow window;
 
@@ -85,10 +92,15 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 	
 	protected Label bPartnerLabel = new Label();
 	protected WEditor bPartnerField;
+	private Label labelDtype = new Label();
+	private Listbox fieldDtype = ListboxFactory.newDropdownListbox();
 
 	private Grid parameterStdLayout;
 
 	private int noOfParameterColumn;
+	
+	//	Support for change BPartner Lookup for Search Field
+	private int	m_C_BPartner_ID = 0;
 
 	@Override
 	public Object getWindow() {
@@ -109,12 +121,18 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 		initBPartner(true);
 		bPartnerField.addValueChangeListener(this);
 		
+		ArrayList<KeyNamePair> docTypeData = getDocTypeData();
+		for(KeyNamePair pp : docTypeData)
+			fieldDtype.appendItem(pp.getName(), pp);
+		
 		return true;
 	}   //  dynInit
 	
 	protected void zkInit() throws Exception
 	{
 		bPartnerLabel.setText(Msg.getElement(Env.getCtx(), "C_BPartner_ID"));
+		labelDtype.setText(Msg.translate(Env.getCtx(), "C_DocType_ID"));
+		fieldDtype.addActionListener(this);
 		
     	Panel parameterPanel = window.getParameterPanel();
 		
@@ -129,10 +147,23 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 		
 		Rows rows = (Rows) parameterStdLayout.newRows();
 		Row row = rows.newRow();
+		//	Add Document Type by RequestType
+		row.appendChild(labelDtype.rightAlign());
+		row.appendChild(fieldDtype);
+		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
+		{			
+			row.appendChild(new Space());
+			row = rows.newRow();
+		}
 		row.appendChild(bPartnerLabel.rightAlign());
 		if (bPartnerField != null)
 			row.appendChild(bPartnerField.getComponent());
-        
+		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
+		{
+			row.appendChild(new Space());
+			row = rows.newRow();
+		}
+		
         if (ClientInfo.isMobile()) {    		
     		if (noOfParameterColumn == 2)
 				LayoutUtils.compactTo(parameterStdLayout, 2);		
@@ -369,11 +400,20 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 		{
 			Integer newBpValue = (Integer)e.getNewValue();
 			int C_BPartner_ID = newBpValue == null?0:newBpValue.intValue();
-			
+			m_C_BPartner_ID = C_BPartner_ID;
 			loadDocuments (C_BPartner_ID);
 		}
 		window.tableChanged(null);
 	}   //  vetoableChange
+	
+	@Override
+	public void onEvent(Event e) throws Exception {
+		if(e.getTarget() == fieldDtype)
+		{
+			
+			loadDocuments (m_C_BPartner_ID);
+		}
+	}
 	
 	/**
 	 *  Load Order/Invoice/GLJournal data into Table
@@ -407,6 +447,10 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 	protected Vector<Vector<Object>> getDocumentData(int C_BPartner_ID)
 	{
 		if (log.isLoggable(Level.CONFIG)) log.config("C_BPartner_ID=" + C_BPartner_ID);
+		
+		KeyNamePair docType = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
+		
+		MDocType dt = new MDocType(Env.getCtx(), docType.getKey(), null);
 
 		String RequestType = getGridTab().get_ValueAsString("RequestType");
 		int C_Currency_ID = (Integer)getGridTab().getValue("C_Currency_ID");
@@ -476,7 +520,7 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
-					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
+					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID AND EXISTS (select 1 from C_PaySchedule ps where p.C_PaymentTerm_ID = ps.C_PaymentTerm_ID AND ps.IsActive = 'Y'))"
 					+ " LEFT JOIN (SELECT psl.C_Order_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
@@ -503,6 +547,10 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 		if(C_BPartner_ID > 0)
 		{
 			sql.append(" AND i.C_BPartner_ID = "+C_BPartner_ID);
+		}
+		if(dt!=null)
+		{
+			sql.append(" AND i.C_DocType_ID = "+dt.get_ID());
 		}
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
@@ -547,5 +595,47 @@ public class WPRCreateFromDocs extends CreateFrom implements ValueChangeListener
 
 		return data;
 	}   //  loadShipment
+	
+	public ArrayList<KeyNamePair> getDocTypeData()
+	{
+		String RequestType = getGridTab().get_ValueAsString("RequestType");
+		
+		ArrayList<KeyNamePair> data = new ArrayList<KeyNamePair>();
+		String sql = null;
+		/**Document type**/
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try
+		{
+			sql = MRole.getDefault().addAccessSQL(
+				"SELECT d.C_DocType_ID, d.PrintName "
+				+ "FROM C_DocType d "
+				+ "WHERE d.DocBaseType = '"+RequestType+"' "
+				+ "ORDER BY 2", "d",
+				MRole.SQL_FULLYQUALIFIED, MRole.SQL_RO);
 
+			KeyNamePair dt = new KeyNamePair(0, "");
+			data.add(dt);
+			pstmt = DB.prepareStatement(sql, null);
+			rs = pstmt.executeQuery();
+
+			while (rs.next())
+			{
+				dt = new KeyNamePair(rs.getInt(1), rs.getString(2));
+				data.add(dt);
+			}
+		}
+		catch (SQLException e)
+		{
+			log.log(Level.SEVERE, sql, e);
+		}
+		finally
+		{
+			DB.close(rs, pstmt);
+			rs = null;
+			pstmt = null;
+		}
+		
+		return data;
+	}
 }
