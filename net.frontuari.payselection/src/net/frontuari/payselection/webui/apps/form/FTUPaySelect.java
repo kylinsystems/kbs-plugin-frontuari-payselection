@@ -351,7 +351,9 @@ public class FTUPaySelect extends FTUForm {
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false) 
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
+					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class)
 					},
 					//	FROM
 					"FTU_PaymentRequest pr"
@@ -361,6 +363,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_Currency prc ON (pr.C_Currency_ID=prc.C_Currency_ID)"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
+					+ " INNER JOIN C_BP_BankAccount bpba ON (prl.C_BP_BankAccount_ID=bpba.C_BP_BankAccount_ID)"
+					+ " INNER JOIN C_Bank b ON (bpba.C_Bank_ID=b.C_Bank_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
@@ -384,8 +388,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) ",
 					//	WHERE
 					"i.IsSOTrx=? AND IsPaid='N'"
-					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) != 0" //Check that AmountDue <> 0
-					+ " AND i.DocStatus IN ('CO','CL')",	//	additional where & order in loadTableInfo()
+					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND i.DocStatus IN ('CO','CL') AND pr.DocStatus = 'CO'",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 		else if(isPrePayment && !isManual)
@@ -409,7 +413,9 @@ public class FTUPaySelect extends FTUForm {
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false) 
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
+					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class) 
 					},
 					//	FROM
 					"FTU_PaymentRequest pr "
@@ -443,8 +449,8 @@ public class FTUPaySelect extends FTUForm {
 					//	WHERE
 					"i.IsSOTrx=? "
 					+ " AND i.C_Invoice_ID IS NULL "
-					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) != 0" //Check that AmountDue <> 0
-					+ " AND i.DocStatus IN ('CO')",	//	additional where & order in loadTableInfo()
+					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND i.DocStatus IN ('CO') AND pr.DocStatus = 'CO'",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 		else if(isManual)
@@ -468,7 +474,9 @@ public class FTUPaySelect extends FTUForm {
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,null, pr.AD_Client_ID,pr.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,null, pr.AD_Client_ID,pr.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false) 
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt,pr.C_Currency_ID, ?,?,null, pr.AD_Client_ID,pr.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
+					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class) 
 					},
 					//	FROM
 					"FTU_PaymentRequest pr "
@@ -499,8 +507,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.FTU_PaymentRequestLine_ID) psl ON (prl.FTU_PaymentRequestLine_ID=psl.FTU_PaymentRequestLine_ID) ",
 					//	WHERE
-					"(prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) != 0" //Check that AmountDue <> 0
-					+ " AND pr.DocStatus IN ('CO') AND pr.RequestType = 'PRM'",	//	additional where & order in loadTableInfo()
+					"(prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType = 'PRM'",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 	}   //  dynInit
