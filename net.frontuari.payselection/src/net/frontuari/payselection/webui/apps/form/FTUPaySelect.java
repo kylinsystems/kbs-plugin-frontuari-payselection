@@ -178,7 +178,8 @@ public class FTUPaySelect extends FTUForm {
 		
 		return data;
 	}
-	
+	/// this is a fucking method for get PaymentRequest
+	/** Depreciated Method**/
 	public ArrayList<KeyNamePair> getDocTypeData()
 	{
 		ArrayList<KeyNamePair> data = new ArrayList<KeyNamePair>();
@@ -566,7 +567,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Query and create TableInfo
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			boolean onlyPositiveBalance, boolean prePayment, boolean manual, int C_BPartner_ID, KeyNamePair PaymentRequest, KeyNamePair org, IMiniTable miniTable)
+			boolean onlyPositiveBalance, boolean prePayment, boolean manual, int C_BPartner_ID, int FTU_PaymentRequest_ID, KeyNamePair org, IMiniTable miniTable)
 	{
 		log.config("");
 		//  not yet initialized
@@ -600,8 +601,8 @@ public class FTUPaySelect extends FTUForm {
 		if (C_BPartner_ID != 0)
 			sql += " AND prl.C_BPartner_ID=?";
 		//Document Type
-		KeyNamePair pr = PaymentRequest;
-		int FTU_PaymentRequest_ID  = pr.getKey();
+		/*KeyNamePair pr = PaymentRequest;
+		int FTU_PaymentRequest_ID  = pr.getKey();*/
 		if (FTU_PaymentRequest_ID  != 0)
 			sql += " AND prl.FTU_PaymentRequest_ID =?";
 		

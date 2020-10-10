@@ -133,8 +133,9 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	private WDateEditor fieldPayDate = new WDateEditor();
 	private Label labelPaymentRule = new Label();
 	private Listbox fieldPaymentRule = ListboxFactory.newDropdownListbox();
-	private Label labelDtype = new Label();
-	private Listbox fieldDtype = ListboxFactory.newDropdownListbox();
+	private Label labelPaymentRequest = new Label();
+	private WSearchEditor fieldPaymentRequestSearch = null;
+	//private Listbox fieldDtype = ListboxFactory.newDropdownListbox();
 	private Label labelDtypeTarget = new Label();
 	private Listbox fieldDtypeTarget = ListboxFactory.newDropdownListbox();
 	private Panel southPanel;
@@ -148,6 +149,8 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	//	Support for change BPartner Lookup for Search Field
 	private int	m_C_BPartner_ID = 0;
 	
+	// Support for PaymentReques lookup for Search Field
+	private int m_FTU_PaymentRequest_ID = 0;
 	/**
 	 *	Initialize Panel
 	 */
@@ -198,9 +201,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		labelPayDate.setText(Msg.translate(Env.getCtx(), "PayDate"));
 		labelPaymentRule.setText(Msg.translate(Env.getCtx(), "PaymentRule"));
 		fieldPaymentRule.addActionListener(this);
-		labelDtype.setText(Msg.translate(Env.getCtx(), "FTU_PaymentRequest_ID"));
-		fieldDtype.addActionListener(this);
-		ZKUpdateUtil.setHflex(fieldDtype, "1");
+		labelPaymentRequest.setText(Msg.translate(Env.getCtx(), "FTU_PaymentRequest_ID"));
+		AD_Column_ID = MColumn.getColumn_ID("FTU_PaymentRequestLine", "FTU_PaymentRequest_ID");	//  C_PaySelection.C_BPartner_ID
+		lookupBP = MLookupFactory.get (Env.getCtx(), form.getWindowNo(), 0, AD_Column_ID, DisplayType.Search);
+		fieldPaymentRequestSearch = new WSearchEditor("FTU_PaymentRequest_ID", true, false, true, lookupBP);
+		fieldPaymentRequestSearch.addValueChangeListener(this);
+		//ZKUpdateUtil.setHflex(fieldPaymentRequestSearch, "1");
 		//
 		labelBankBalance.setText(Msg.translate(Env.getCtx(), "CurrentBalance"));
 		labelBalance.setText("0");
@@ -312,8 +318,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		row.appendChild(new Space());
 		
 		row = rows.newRow();
-		row.appendChild(labelDtype.rightAlign());
-		row.appendChild(fieldDtype);
+		row.appendChild(labelPaymentRequest.rightAlign());
+		ZKUpdateUtil.setHflex(fieldPaymentRequestSearch.getComponent(), "true");
+		row.appendCellChild(fieldPaymentRequestSearch.getComponent(),1);
+		fieldPaymentRequestSearch.showMenu();
+		//row.appendChild(fieldDtype);
 		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
 		{
 			row.appendChild(new Space());
@@ -383,9 +392,9 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			fieldBPartner.appendItem(pp.getName(), pp);
 		fieldBPartner.setSelectedIndex(0);*/
 
-		ArrayList<KeyNamePair> docTypeData = getDocTypeData();
+		/*ArrayList<KeyNamePair> docTypeData = getDocTypeData();fieldPaymentRequestSearch
 		for(KeyNamePair pp : docTypeData)
-			fieldDtype.appendItem(pp.getName(), pp);
+			fieldDtype.appendItem(pp.getName(), pp);*/
 		
 		//	Document Type Target
 		ArrayList<KeyNamePair> docTypeTargetData = getDocTypeTargetData();
@@ -476,7 +485,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		ValueNamePair paymentRule = (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue();
 		//KeyNamePair bpartner = (KeyNamePair) fieldBPartner.getSelectedItem().getValue();
-		KeyNamePair PaymentRequest = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
+		//KeyNamePair PaymentRequest = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
 		//	Added by Jorge Colmenarez, 2020-08-19 11:58 
 		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
 		
@@ -484,7 +493,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected());
 		//	loadTableInfo
 		//loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(), m_C_BPartner_ID, PaymentRequest, org, miniTable);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(), m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);
 		
 		calculateSelection();
 		if (ClientInfo.maxHeight(ClientInfo.MEDIUM_HEIGHT-1))
@@ -529,7 +538,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		}
 		//  Update Open Invoices
 		//	else if (e.getTarget() == fieldBPartner || e.getTarget() == bRefresh || e.getTarget() == fieldDtype
-		else if (e.getTarget() == bRefresh || e.getTarget() == fieldDtype
+		else if (e.getTarget() == bRefresh //|| e.getTarget() == fieldDtype
 				|| e.getTarget() == fieldPaymentRule || e.getTarget() == onlyDue || e.getTarget() == onlyPositiveBalance
 				 || e.getTarget() == prePayment)
 			loadTableInfo();
@@ -575,6 +584,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		{
 			bpartnerSearch.setValue(value);
 			m_C_BPartner_ID = ((Integer)value).intValue();
+			loadTableInfo();
+		}
+		if (name.equals("FTU_PaymentRequest_ID") && value != null)
+		{
+			fieldPaymentRequestSearch.setValue(value);
+			m_FTU_PaymentRequest_ID = ((Integer)value).intValue();
 			loadTableInfo();
 		}
 	}
