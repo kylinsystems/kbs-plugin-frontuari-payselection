@@ -25,4 +25,4 @@ Service-Component: OSGI-INF/ModelFactory.xml,OSGI-INF/EventFactory.xml,OSGI-INF/
  OSGI-INF/CreateFromFactory.xml
 Bundle-ClassPath: .,
  lib/freemarker.jar
-Bundle-Activator: org.adempiere.plugin.utils.Incremental2PackActivator
+Bundle-Activator: org.adempiere.plugin.utils.AdempiereActivator

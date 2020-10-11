@@ -238,7 +238,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 				+ "COALESCE(o.DocumentNO, i.DocumentNO, j.DocumentNO) DocumentNo, pr.RequestType, bp.Name "
 				+ "FROM FTU_PaymentRequestLine prl "
 				+ "INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID) "
-				+ "INNER JOIN C_PaySelectionLine psl  ON (prl.FTU_PaymentRequestLine_id = psl.FTU_PaymentRequestLine_ID) "
+				+ "INNER JOIN C_PaySelectionLine psl  ON (prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID) "
 				+ "INNER JOIN C_PaySelectionCheck psc ON (psc.C_PaySelectionCheck_ID = psl.C_PaySelectionCheck_ID ) "
 				+ "INNER JOIN C_PaySelection ps ON (psl.C_PaySelection_ID = ps.C_PaySelection_ID) "
 				+ "LEFT JOIN C_Payment p ON (psc.C_Payment_ID = p.C_Payment_ID ) "
@@ -582,7 +582,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(i.DocStatus,'') DocStatus, " + //6
@@ -602,7 +602,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(o.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),o.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,o.C_ConversionType_ID,o.AD_Client_ID,o.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(o.DocStatus,'') DocStatus, " + //6
@@ -623,7 +623,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(op.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(op.OpenAmt,0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(op.OpenAmt,op.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,op.C_ConversionType_ID,pr.AD_Client_ID,pr.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(op.DocStatus,'') DocStatus, " + //6
