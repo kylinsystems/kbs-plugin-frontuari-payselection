@@ -780,9 +780,10 @@ public class FTUPaySelect extends FTUForm {
 			m_ps = new MPaySelection(Env.getCtx(), 0, trxName);
 			//	Set DocumentType and DocumentNo
 			MDocType dt = new MDocType(Env.getCtx(), C_DocType_ID, trxName);
-			m_ps.set_ValueOfColumn("C_DocType_ID", dt.get_ValueAsInt("C_DocTypePaySelection_ID"));
-			if(dt.getDocNoSequence_ID()>0)
-				m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dt.get_ID(), trxName, false, null));
+			MDocType dtTo = new MDocType(Env.getCtx(), dt.get_ValueAsInt("C_DocTypePaySelection_ID"), trxName);
+			m_ps.set_ValueOfColumn("C_DocType_ID", dtTo.getC_DocType_ID());
+			if(dtTo.getDocNoSequence_ID()>0)
+				m_ps.set_ValueOfColumn("DocumentNo", MSequence.getDocumentNo(dtTo.getC_DocType_ID(), trxName, false, null));
 			//	Set Organization
 			MBankAccount ba = new MBankAccount(Env.getCtx(), bi.C_BankAccount_ID, null);
 			m_ps.setAD_Org_ID(ba.getAD_Org_ID());
