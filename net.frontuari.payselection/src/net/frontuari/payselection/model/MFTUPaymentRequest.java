@@ -35,6 +35,10 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 	 */
 	private static final long serialVersionUID = 5771238236814875408L;
 
+
+	/** Invoice = ARI */
+	public static final String REQUESTTYPE_ARInvoice = "ARI";
+	
 	public MFTUPaymentRequest(Properties ctx, int FTU_PaymentRequest_ID, String trxName) {
 		super(ctx, FTU_PaymentRequest_ID, trxName);
 		if (FTU_PaymentRequest_ID == 0) {
@@ -632,17 +636,39 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 						"FROM  " +
 						"FTU_PaymentRequestLine prl " +
 						"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
-						"INNER JOIN FTU_RV_OpenPayment op ON (op.Record_ID=prl.GL_JournalLine_ID AND op.RequestType = 'GLJ') " + 
-						"INNER JOIN (SELECT prl.GL_JournalLine_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.GL_JournalLine_ID) QtyRecords " +
+						"INNER JOIN FTU_RV_OpenPayment op ON (op.Record_ID=prl.GL_Journal_ID AND op.RequestType = 'GLJ') " + 
+						"INNER JOIN (SELECT prl.GL_Journal_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.GL_Journal_ID) QtyRecords " +
 						"FROM FTU_PaymentRequestLine prl " + 
-						"GROUP BY prl.GL_JournalLine_ID,prl.FTU_PaymentRequest_ID) " + 
-						"prlg ON (prl.GL_JournalLine_ID =prlg.GL_JournalLine_ID AND prl.FTU_PaymentRequest_ID = prlg.FTU_PaymentRequest_ID) " +
+						"GROUP BY prl.GL_Journal_ID,prl.FTU_PaymentRequest_ID) " + 
+						"prlg ON (prl.GL_Journal_ID =prlg.GL_Journal_ID AND prl.FTU_PaymentRequest_ID = prlg.FTU_PaymentRequest_ID) " +
 						"WHERE pr.FTU_PaymentRequest_ID=? ");
 		if (getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_PaymentRequestManual)) //Only Check Lines 
 			sql.append("SELECT 1 " + 
 						"FROM  " +
 						"FTU_PaymentRequestLine prl " +
 						"WHERE prl.FTU_PaymentRequest_ID=? ");
+		if (getRequestType().equals(REQUESTTYPE_ARInvoice))
+			sql.append("SELECT  " + 
+					"COALESCE(prl.Line,0) Line, " + // 1 
+					"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
+					//"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
+					"COALESCE(prl.PayAmt,0)"
+						+ "-COALESCE((SELECT SUM(currencyconvert(prl_1.PayAmt,pr_1.C_Currency_ID,i_1.C_Currency_ID,pr_1.DateDoc,i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
+							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation 
+					"COALESCE(prl.PayAmt,0) PayAmt , " + //4
+					//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
+					"COALESCE(i.DocStatus,'') DocStatus, " + //6
+					"COALESCE(prlg.QtyRecords,1) QtyRecords, " + //7
+					"COALESCE(prl.IsPrepared,'N') IsPrepared " + //8
+					"FROM  " +
+					"FTU_PaymentRequestLine prl " +
+					"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
+					"INNER JOIN C_Invoice i ON (i.C_Invoice_ID=prl.C_Invoice_ID) " +
+					"INNER JOIN (SELECT prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.C_Invoice_ID) QtyRecords " +
+					"FROM FTU_PaymentRequestLine prl " + 
+					"GROUP BY prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID) " + 
+					"prlg ON (prl.C_Invoice_ID =prlg.C_Invoice_ID AND prl.FTU_PaymentRequest_ID = prlg.FTU_PaymentRequest_ID) " +
+					"WHERE pr.FTU_PaymentRequest_ID=? ");
 		
 		try{
 			ps = DB.prepareStatement(sql.toString(), get_TrxName());
@@ -698,7 +724,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 				}
 			}
 		}catch(Exception e){
-			throw new AdempiereException(e.getMessage());
+			throw new AdempiereException(e);
 		}
 		finally{
 			DB.close(rs, ps);

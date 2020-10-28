@@ -102,6 +102,12 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 			{
 				payment = new FTUMPayment(check.getCtx(), 0, trxName);
 				payment.setAD_Org_ID(check.getAD_Org_ID());
+				
+				MPaySelection ps = check.getParent();
+				MDocType dt = new MDocType(Env.getCtx(), ps.get_ValueAsInt("C_DocType_ID"), trxName);
+				int C_DocTypePayment_ID = dt.get_ValueAsInt("C_DocTypePayment_ID");
+				if(C_DocTypePayment_ID>0)
+					payment.setC_DocType_ID(C_DocTypePayment_ID);
 				//
 				if (check.getPaymentRule().equals(PAYMENTRULE_Check))
 					payment.setBankCheck (check.getParent().getC_BankAccount_ID(), false, check.getDocumentNo());
@@ -161,8 +167,7 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 				}
 				else
 				{
-					MPaySelection ps = check.getParent();
-					MDocType dt = new MDocType(Env.getCtx(), ps.get_ValueAsInt("C_DocType_ID"), trxName);
+					
 					if(dt.get_ValueAsBoolean("IsOrderPrePayment"))
 					{
 						payment.setIsPrepayment(true);

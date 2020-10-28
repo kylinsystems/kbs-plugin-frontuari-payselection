@@ -83,7 +83,8 @@ public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 									&& getC_Order_ID() == 0)	{
 								throw new AdempiereException("@C_Order_ID@ @NotFound@");
 							}else if(m_FTUPaymentRequest.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal)
-									&& getGL_JournalLine_ID()== 0)	{
+									&& get_ValueAsInt("GL_Journal_ID")<= 0)	{
+									//&& getGL_JournalLine_ID()== 0)	{
 								throw new AdempiereException("@GL_JournalLine_ID@ @NotFound@");
 							}
 						}

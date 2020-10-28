@@ -513,7 +513,7 @@ public class FTUPaySelect extends FTUForm {
 					+ " GROUP BY psl.FTU_PaymentRequestLine_ID) psl ON (prl.FTU_PaymentRequestLine_ID=psl.FTU_PaymentRequestLine_ID) ",
 					//	WHERE
 					"(prl.PayAmt-COALESCE(psl.PayAmt,0)-COALESCE(pslpay.PayAmt,0)) > 0" //Check that AmountDue <> 0
-					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType = 'PRM'",	//	additional where & order in loadTableInfo()
+					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType IN ('PRM','GLJ')",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 	}   //  dynInit
@@ -567,7 +567,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Query and create TableInfo
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			boolean onlyPositiveBalance, boolean prePayment, boolean manual, int C_BPartner_ID, int FTU_PaymentRequest_ID, KeyNamePair org, IMiniTable miniTable)
+			boolean onlyPositiveBalance, boolean prePayment, boolean manual,MDocType Doctype, int C_BPartner_ID, int FTU_PaymentRequest_ID, KeyNamePair org, IMiniTable miniTable)
 	{
 		log.config("");
 		//  not yet initialized
@@ -592,6 +592,9 @@ public class FTUPaySelect extends FTUForm {
 			isSOTrx = "Y";
 			sql += " AND i.PaymentRule='" + X_C_Order.PAYMENTRULE_DirectDebit + "'";
 		}
+		
+		if(Doctype.isSOTrx())
+			isSOTrx = "Y";
 		//
 		if (onlyDue)
 			sql += " AND prl.DueDate <= ?";
@@ -611,6 +614,9 @@ public class FTUPaySelect extends FTUForm {
 		int ad_org_id  = o.getKey();
 		if (ad_org_id != 0)
 			sql += " AND pr.ad_org_id =?";
+		
+		if(manual && Doctype.get_ValueAsString("RequestType").length()>1)
+			sql += "AND pr.RequestType = '"+Doctype.get_ValueAsString("RequestType")+"'";
 
 		if (onlyPositiveBalance) {
 			int innerindex = sql.indexOf("INNER");

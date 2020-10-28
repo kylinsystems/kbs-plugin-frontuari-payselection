@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Vector;
 import java.util.logging.Level;
 
+import org.adempiere.exceptions.AdempiereException;
 import org.adempiere.webui.ClientInfo;
 import org.adempiere.webui.LayoutUtils;
 import org.adempiere.webui.apps.AEnv;
@@ -36,6 +37,7 @@ import org.compiere.model.MBPartner;
 import org.compiere.model.MColumn;
 import org.compiere.model.MDocType;
 import org.compiere.model.MInvoice;
+import org.compiere.model.MJournal;
 import org.compiere.model.MLookup;
 import org.compiere.model.MLookupFactory;
 import org.compiere.model.MOrder;
@@ -202,6 +204,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		miniTable.setColumnClass(7, BigDecimal.class, true);	//  7-GrandTotal
 		miniTable.setColumnClass(8, BigDecimal.class, true);	//  8-DueAmt
 		miniTable.setColumnClass(9, BigDecimal.class, false);	//  9-PayAmt
+		miniTable.setColumnClass(10, Boolean.class, false);      //  10-HasWithholding
 		//  Table UI
 		miniTable.autoSize();
 	}
@@ -220,6 +223,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	    columnNames.add(Msg.getElement(Env.getCtx(), "GrandTotal"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "DueAmt"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "PayAmt"));
+	    columnNames.add(Msg.getElement(Env.getCtx(), "IsTaxWithholding"));
 
 	    return columnNames;
 	}
@@ -248,7 +252,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				//	BPartner
 				MBPartner bp = null;
 				//	For Invoices
-				if(pr.getRequestType().equalsIgnoreCase(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice))
+				if(pr.getRequestType().equalsIgnoreCase(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice)||pr.getRequestType().equalsIgnoreCase(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
 				{
 					line.setC_Invoice_ID(Record_ID);
 					MInvoice doc = new MInvoice(Env.getCtx(), Record_ID, trxName);
@@ -261,11 +265,19 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					MOrder doc = new MOrder(Env.getCtx(), Record_ID, trxName);
 					bp = new MBPartner(Env.getCtx(), doc.getC_BPartner_ID(), trxName);
 				}
+				else if (pr.getRequestType().equalsIgnoreCase(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal)) {
+					//line.set
+					line.set_ValueOfColumn("GL_Journal_ID", Record_ID);
+					MJournal GJorurnal = new MJournal(Env.getCtx(), Record_ID, trxName);
+					bp = new MBPartner(Env.getCtx(), GJorurnal.get_ValueAsInt("C_BPartner_ID"), trxName);
+				}
 				else
 					continue;
 				
 				line.setC_BPartner_ID(bp.getC_BPartner_ID());
 				MBPBankAccount[] bpa = bp.getBankAccounts(true); 
+				if(bpa.length <=0 )
+					throw new AdempiereException("No hay cuentas de banco configuradas para el tercero:"+bp.getValue()+"-"+bp.getName());
 				//	Set first row
 				line.setC_BP_BankAccount_ID(bpa[0].getC_BP_BankAccount_ID());
 				line.setDueDate((Timestamp)miniTable.getValueAt(i, 2));
@@ -287,10 +299,14 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	 */
 	protected void initBPartner (boolean forInvoice) throws Exception
 	{
+		String IsSOTrx = "N";
+		String RequestType = getGridTab().get_ValueAsString("RequestType");
+		if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
+			IsSOTrx="Y";
 		StringBuffer where = new StringBuffer(" (EXISTS (SELECT 1 FROM C_Invoice i WHERE C_BPartner.C_BPartner_ID=i.C_BPartner_ID")
-				  .append(" AND (i.IsSOTrx='N' OR (i.IsSOTrx='Y' AND i.PaymentRule='D'))")
+				  .append(" AND (i.IsSOTrx='"+IsSOTrx+"' OR (i.IsSOTrx='"+IsSOTrx+"' AND i.PaymentRule='D'))")
 				  .append(" AND i.IsPaid<>'Y') OR EXISTS (SELECT 1 FROM C_Order o WHERE C_BPartner.C_BPartner_ID=o.C_BPartner_ID ")
-				  .append(" AND o.IsSOTrx ='N' AND NOT EXISTS (SELECT 1 FROM C_Invoice inv WHERE inv.C_Order_ID = o.C_Order_ID))) ");
+				  .append(" AND o.IsSOTrx ='"+IsSOTrx+"' AND NOT EXISTS (SELECT 1 FROM C_Invoice inv WHERE inv.C_Order_ID = o.C_Order_ID))) ");
 		
 		//  load BPartner
 		int AD_Column_ID = MColumn.getColumn_ID(MFTUPaymentRequestLine.Table_Name, MFTUPaymentRequestLine.COLUMNNAME_C_BPartner_ID) ;        //  C_Invoice.C_BPartner_ID
@@ -471,7 +487,9 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay ")	// 10
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay, "	// 10
+					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
+					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
@@ -494,7 +512,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
 					+ " JOIN C_Invoice i on prl.C_Invoice_ID = i.C_Invoice_ID "
 					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
-					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID) "
+					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
 					+ " GROUP BY prl.C_Invoice_ID) prl ON (i.C_Invoice_ID = prl.C_Invoice_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND IsPaid='N'"
@@ -513,7 +531,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
 					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay ")	//	10
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	//	10
+					+ "'N' AS IsTaxWithholding")
 					//	FROM
 					.append(" FROM FTU_Order_v i"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
@@ -536,19 +555,108 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
 					+ " JOIN C_Order i on prl.C_Order_ID = i.C_Order_ID "
 					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
-					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID) "
+					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
 					+ " GROUP BY prl.C_Order_ID) prl ON (i.C_Order_ID = prl.C_Order_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND i.C_Invoice_ID IS NULL "
 					+ " AND (ftuOrderOpen(i.C_Order_ID, i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
+		}else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal)) {
+
+			int C_DocType_ID = (Integer)getGridTab().getValue("C_DocType_ID");
+			MDocType DocType = new MDocType(Env.getCtx(),C_DocType_ID,null);
+			int Account_ID = DocType.get_ValueAsInt("Account_ID");
+			
+			sql.append("i.GL_Journal_ID AS Record_ID," //1
+					+ "o.Name as OrgName," //2
+					+ "i.DateDoc AS DateDue,"	// 3 
+					+ "bp.Name AS BPName,"	// 4
+					+ "dt.Name AS DocTypeName,"	// 5
+					+ "i.DocumentNo,"	//	6
+					+ "c.ISO_Code,"	//	7
+					+ "SUM(il.AmtSourceCr) AS GrandTotal,"	//	8
+					+ "currencyConvert(SUM(il.AmtSourceCr),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue," //9
+					+ "currencyConvert(SUM(il.AmtSourceCr),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay," //10
+					+ "'N' AS IsTaxWithholding")//11
+					// FROM 
+					.append(" FROM GL_Journal i"
+							+ " INNER JOIN GL_JournalLine il ON i.GL_Journal_ID=il.GL_Journal_ID"
+							+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
+							+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
+							+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
+							+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
+							+ " LEFT JOIN (SELECT prl.GL_Journal_ID,"
+							+ "	SUM(currencyConvert(prl.PayAmt,pr.C_Currency_ID,i.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+							+ "	FROM FTU_PaymentRequest pr "
+							+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
+							+ " JOIN GL_Journal i on prl.GL_Journal_ID = i.GL_Journal_ID "
+							+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
+							//+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID) "
+							+ " GROUP BY prl.GL_Journal_ID) prl ON (i.GL_Journal_ID = prl.GL_Journal_ID) "							
+							//+ ""
+							)
+					// WHERE
+					.append(" WHERE dt.IsRequiredPayment='Y' AND i.DocStatus IN ('CO','CL')"
+							+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
+							+ " AND il.Account_ID="+Account_ID)
+					//GROUP
+					.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code");
+		}else if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice)) {
+			sql.append(" i.C_Invoice_ID AS Record_ID, " //	1
+					+ "o.Name AS OrgName,"	//	2
+					+ "i.DueDate AS DateDue,"	// 3 
+					+ "bp.Name AS BPName,"	// 4
+					+ "dt.Name AS DocTypeName,"	// 5
+					+ "i.DocumentNo,"	//	6
+					+ "c.ISO_Code,"	//	7
+					+ "i.GrandTotal,"	//	8
+					/*+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
+					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
+					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11*/
+					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
+					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
+					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding") //11
+					//	FROM
+					.append(" FROM C_Invoice_v i"
+					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
+					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
+					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
+					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
+					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
+					+ " LEFT JOIN (SELECT SUM(currencyConvert(iw.TaxAmt,vw.C_Currency_ID,winv.C_Currency_ID,vw.DateTrx,vw.C_ConversionType_ID,vw.AD_Client_ID,vw.AD_Org_ID)) as withholdingAmt,iw.C_Invoice_ID FROM LCO_InvoiceWithholding iw "
+						+ " JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
+						+ " JOIN C_Invoice winv ON iw.C_Invoice_ID=winv.C_Invoice_ID "
+						+ " WHERE vw.DocStatus IN ('CO','CL','BR') GROUP BY iw.C_Invoice_ID) vw ON (vw.C_Invoice_ID=i.C_Invoice_ID)"
+					+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
+					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+					+ "	FROM C_PaySelectionLine psl "
+					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
+					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
+					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
+					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " WHERE psl.IsActive='Y' "
+					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "
+					+ " LEFT JOIN (SELECT prl.C_Invoice_ID,"
+					+ "	SUM(currencyConvert(prl.PayAmt,pr.C_Currency_ID,i.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+					+ "	FROM FTU_PaymentRequest pr "
+					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
+					+ " JOIN C_Invoice i on prl.C_Invoice_ID = i.C_Invoice_ID "
+					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
+					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
+					+ " GROUP BY prl.C_Invoice_ID) prl ON (i.C_Invoice_ID = prl.C_Invoice_ID) ")
+					//	WHERE
+					.append(" WHERE i.IsSOTrx='Y' AND (COALESCE(vw.withholdingAmt,0)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0"
+					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND i.DocStatus IN ('CO','CL')"
+					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		}
 		if(C_BPartner_ID > 0)
 		{
 			sql.append(" AND i.C_BPartner_ID = "+C_BPartner_ID);
 		}
-		if(dt!=null)
+		if(dt!=null && dt.get_ID()>0)
 		{
 			sql.append(" AND i.C_DocType_ID = "+dt.get_ID());
 		}
@@ -556,14 +664,16 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		ResultSet rs = null;
 		try
 		{
+			int index = 1;
 			pstmt = DB.prepareStatement(sql.toString(), null);
-			pstmt.setInt(1, C_Currency_ID);
-			pstmt.setTimestamp(2, DateDoc);
-			pstmt.setTimestamp(3, DateDoc);
-			pstmt.setInt(4, C_Currency_ID);
-			pstmt.setTimestamp(5, DateDoc);
-			pstmt.setInt(6, Env.getAD_Client_ID(Env.getCtx()));
-			pstmt.setInt(7, AD_Org_ID);
+			pstmt.setInt(index++, C_Currency_ID);
+			pstmt.setTimestamp(index++, DateDoc);
+			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
+				pstmt.setTimestamp(index++, DateDoc);
+			pstmt.setInt(index++, C_Currency_ID);
+			pstmt.setTimestamp(index++, DateDoc);
+			pstmt.setInt(index++, Env.getAD_Client_ID(Env.getCtx()));
+			pstmt.setInt(index++, AD_Org_ID);
 			rs = pstmt.executeQuery();
 			while (rs.next())
 			{
@@ -579,6 +689,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				line.add(rs.getBigDecimal(8));		// 	7-GrandTotal
 				line.add(rs.getBigDecimal(9));		// 	8-DueAmt
 				line.add(rs.getBigDecimal(10));		// 	9-PayAmt
+				line.add(rs.getString(11).equals("Y"));		// 	10-IsTaxWithholding
 				data.add(line);
 			}
 		}

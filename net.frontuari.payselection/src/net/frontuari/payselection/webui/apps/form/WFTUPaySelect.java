@@ -151,6 +151,15 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	
 	// Support for PaymentReques lookup for Search Field
 	private int m_FTU_PaymentRequest_ID = 0;
+	
+	
+	
+	
+	
+	
+	/** **/
+	private MDocType m_Doctype;
+	
 	/**
 	 *	Initialize Panel
 	 */
@@ -451,10 +460,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 
 		KeyNamePair docType = (KeyNamePair) fieldDtypeTarget.getSelectedItem().getValue();
 		
-		MDocType dt = new MDocType(Env.getCtx(), docType.getKey(), null);
+		m_Doctype = new MDocType(Env.getCtx(), docType.getKey(), null);
 		
-		boolean prepayment = (dt.get_ValueAsString("RequestType").equals("POO") ? true : false);
-		boolean manual = (dt.get_ValueAsString("RequestType").equals("PRM") ? true : false);
+		boolean prepayment = (m_Doctype.get_ValueAsString("RequestType").equals("POO") ? true : false);
+		boolean manual = (m_Doctype.get_ValueAsString("RequestType").equals("PRM")||m_Doctype.get_ValueAsString("RequestType").equals("GLJ")? true : false);
+		
 		
 		prePayment.setChecked(prepayment);
 		Manual.setChecked(manual);
@@ -493,7 +503,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected());
 		//	loadTableInfo
 		//loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(), m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(),m_Doctype, m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);
 		
 		calculateSelection();
 		if (ClientInfo.maxHeight(ClientInfo.MEDIUM_HEIGHT-1))
