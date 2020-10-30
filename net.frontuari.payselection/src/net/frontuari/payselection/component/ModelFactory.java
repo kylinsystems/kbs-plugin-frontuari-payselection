@@ -18,6 +18,8 @@
 
 package net.frontuari.payselection.component;
 
+import net.frontuari.payselection.model.FTUMAllocationHdr;
+import net.frontuari.payselection.model.FTUMAllocationLine;
 import net.frontuari.payselection.base.FTUModelFactory;
 import net.frontuari.payselection.model.FTUMPaySelectionCheck;
 import net.frontuari.payselection.model.FTUMPayment;
@@ -44,6 +46,8 @@ public class ModelFactory extends FTUModelFactory {
 		registerModel(FTUMPayment.Table_Name, FTUMPayment.class);
 		registerModel(MFTUPaymentRequest.Table_Name,MFTUPaymentRequest.class);
 		registerModel(MFTUPaymentRequestLine.Table_Name,MFTUPaymentRequestLine.class);
+		registerModel(FTUMAllocationHdr.Table_Name, FTUMAllocationHdr.class);
+		registerModel(FTUMAllocationLine.Table_Name, FTUMAllocationLine.class);
 	}
 
 }

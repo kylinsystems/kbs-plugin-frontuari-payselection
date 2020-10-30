@@ -297,6 +297,58 @@ public class FTUMPayment extends MPayment {
 	}	//	allocateIt
 
 	/**
+	 * 	Allocate single AP/AR Invoice
+	 * 	@return true if allocated
+	 */
+	protected boolean allocateInvoice()
+	{
+		//	calculate actual allocation
+		BigDecimal allocationAmt = getPayAmt();			//	underpayment
+		if (getOverUnderAmt().signum() < 0 && getPayAmt().signum() > 0)
+			allocationAmt = allocationAmt.add(getOverUnderAmt());	//	overpayment (negative)
+		
+		MDocType docType = (MDocType)getC_DocType();
+		int C_DocTypeAllocation_ID = docType.get_ValueAsInt("C_DocTypeAllocation_ID");
+
+		FTUMAllocationHdr alloc = new FTUMAllocationHdr(getCtx(), false, 
+			getDateTrx(), getC_Currency_ID(),
+			Msg.translate(getCtx(), "C_Payment_ID") + ": " + getDocumentNo() + " [1]", get_TrxName());
+		alloc.setAD_Org_ID(getAD_Org_ID());
+		alloc.setDateAcct(getDateAcct()); // in case date acct is different from datetrx in payment
+		if(C_DocTypeAllocation_ID>0)
+			alloc.setC_DocType_ID(C_DocTypeAllocation_ID);
+		alloc.saveEx();
+		MAllocationLine aLine = null;
+		if (isReceipt())
+			aLine = new MAllocationLine (alloc, allocationAmt, 
+				getDiscountAmt(), getWriteOffAmt(), getOverUnderAmt());
+		else
+			aLine = new MAllocationLine (alloc, allocationAmt.negate(), 
+				getDiscountAmt().negate(), getWriteOffAmt().negate(), getOverUnderAmt().negate());
+		aLine.setDocInfo(getC_BPartner_ID(), 0, getC_Invoice_ID());
+		aLine.setC_Payment_ID(getC_Payment_ID());
+		aLine.saveEx(get_TrxName());
+		// added AdempiereException by zuhri
+		if (!alloc.processIt(DocAction.ACTION_Complete))
+			throw new AdempiereException(Msg.getMsg(getCtx(), "FailedProcessingDocument") + " - " + alloc.getProcessMsg());
+		addDocsPostProcess(alloc);
+		// end added
+		alloc.saveEx(get_TrxName());
+		m_justCreatedAllocInv = alloc;
+		m_processMsg = "@C_AllocationHdr_ID@: " + alloc.getDocumentNo();
+			
+		//	Get Project from Invoice
+		int C_Project_ID = DB.getSQLValue(get_TrxName(), 
+			"SELECT MAX(C_Project_ID) FROM C_Invoice WHERE C_Invoice_ID=?", getC_Invoice_ID());
+		if (C_Project_ID > 0 && getC_Project_ID() == 0)
+			setC_Project_ID(C_Project_ID);
+		else if (C_Project_ID > 0 && getC_Project_ID() > 0 && C_Project_ID != getC_Project_ID())
+			log.warning("Invoice C_Project_ID=" + C_Project_ID 
+				+ " <> Payment C_Project_ID=" + getC_Project_ID());
+		return true;
+	}	//	allocateInvoice
+	
+	/**
 	 * 	Allocate Payment Selection
 	 * 	@return true if allocated
 	 */

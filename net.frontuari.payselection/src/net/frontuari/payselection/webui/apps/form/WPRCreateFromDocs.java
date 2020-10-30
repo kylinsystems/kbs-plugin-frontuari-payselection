@@ -307,6 +307,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				  .append(" AND (i.IsSOTrx='"+IsSOTrx+"' OR (i.IsSOTrx='"+IsSOTrx+"' AND i.PaymentRule='D'))")
 				  .append(" AND i.IsPaid<>'Y') OR EXISTS (SELECT 1 FROM C_Order o WHERE C_BPartner.C_BPartner_ID=o.C_BPartner_ID ")
 				  .append(" AND o.IsSOTrx ='"+IsSOTrx+"' AND NOT EXISTS (SELECT 1 FROM C_Invoice inv WHERE inv.C_Order_ID = o.C_Order_ID))) ");
+			
 		
 		//  load BPartner
 		int AD_Column_ID = MColumn.getColumn_ID(MFTUPaymentRequestLine.Table_Name, MFTUPaymentRequestLine.COLUMNNAME_C_BPartner_ID) ;        //  C_Invoice.C_BPartner_ID
@@ -472,7 +473,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		int C_Currency_ID = (Integer)getGridTab().getValue("C_Currency_ID");
 		int AD_Org_ID = (Integer)getGridTab().getValue("AD_Org_ID");
 		Timestamp DateDoc = (Timestamp) getGridTab().getValue("DateDoc");
-		
+		StringBuilder groupBy = new StringBuilder(" ");
 		//
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
 		StringBuilder sql = new StringBuilder("SELECT ");
@@ -599,9 +600,9 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					// WHERE
 					.append(" WHERE dt.IsRequiredPayment='Y' AND i.DocStatus IN ('CO','CL')"
 							+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
-							+ " AND il.Account_ID="+Account_ID)
+							+ " AND il.Account_ID="+Account_ID);
 					//GROUP
-					.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code");
+					groupBy.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code");
 		}else if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice)) {
 			sql.append(" i.C_Invoice_ID AS Record_ID, " //	1
 					+ "o.Name AS OrgName,"	//	2
@@ -660,6 +661,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		{
 			sql.append(" AND i.C_DocType_ID = "+dt.get_ID());
 		}
+		sql.append(groupBy);
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		try

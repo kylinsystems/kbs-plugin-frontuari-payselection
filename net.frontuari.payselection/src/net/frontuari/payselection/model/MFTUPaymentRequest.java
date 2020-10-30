@@ -80,10 +80,15 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 		//	Valid Document Action
 		if (AD_Table_ID == Table_ID){
 			if (docStatus.equals(DocumentEngine.STATUS_Drafted)
-					|| docStatus.equals(DocumentEngine.STATUS_InProgress)
+					/*|| docStatus.equals(DocumentEngine.STATUS_InProgress)*/
 					|| docStatus.equals(DocumentEngine.STATUS_Invalid))
 				{
-					//options[index++] = DocumentEngine.ACTION_Prepare;
+					options[index++] = DocumentEngine.ACTION_Prepare;
+				}else if (docStatus.equals(DocumentEngine.STATUS_InProgress)) {
+					options[index++] = DocumentEngine.ACTION_Approve;
+				}
+				else if (docStatus.equals(DocumentEngine.STATUS_Approved)) {
+					options[index++] = DocumentEngine.ACTION_Complete;
 				}
 				//	Complete                    ..  CO
 				else if (docStatus.equals(DocumentEngine.STATUS_Completed))
