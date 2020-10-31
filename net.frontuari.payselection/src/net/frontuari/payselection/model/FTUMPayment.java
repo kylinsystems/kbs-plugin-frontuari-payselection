@@ -310,7 +310,7 @@ public class FTUMPayment extends MPayment {
 		MDocType docType = (MDocType)getC_DocType();
 		int C_DocTypeAllocation_ID = docType.get_ValueAsInt("C_DocTypeAllocation_ID");
 
-		FTUMAllocationHdr alloc = new FTUMAllocationHdr(getCtx(), false, 
+		MAllocationHdr alloc = new MAllocationHdr(getCtx(), false, 
 			getDateTrx(), getC_Currency_ID(),
 			Msg.translate(getCtx(), "C_Payment_ID") + ": " + getDocumentNo() + " [1]", get_TrxName());
 		alloc.setAD_Org_ID(getAD_Org_ID());
