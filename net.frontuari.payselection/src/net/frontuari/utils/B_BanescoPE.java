@@ -338,15 +338,15 @@ public class B_BanescoPE implements PaymentExport {
 		String[] bp = new String[5];
 		//	Sql
 		if (mpp.getC_BP_BankAccount_ID()==0)
-			sql = "SELECT MAX(bpa.AccountNo) AccountNo, bpa.A_Ident_SSN, bpa.A_Name, bpb.SwiftCode, bpa.A_Email " +
+			sql = "SELECT MAX(bpa.AccountNo) AccountNo, bpa.A_Ident_SSN, bpa.A_Name, bpb.RoutingNo AS SwiftCode, bpa.A_Email " +
 					"FROM C_BP_BankAccount bpa " +
 					"INNER JOIN C_Bank bpb ON(bpb.C_Bank_ID = bpa.C_Bank_ID) " +
 					"WHERE bpa.C_BPartner_ID = ? " +
 					"AND bpa.IsActive = 'Y' " +
 					"AND bpa.IsACH = 'Y' " +
-					"GROUP BY bpa.C_BPartner_ID, bpa.A_Ident_SSN, bpa.A_Name, bpb.SwiftCode, bpa.A_Email";
+					"GROUP BY bpa.C_BPartner_ID, bpa.A_Ident_SSN, bpa.A_Name, bpb.RoutingNo, bpa.A_Email";
 		else
-			sql = "SELECT AccountNo, A_Ident_SSN, A_Name, bpb.SwiftCode , bpa.A_Email " +
+			sql = "SELECT AccountNo, A_Ident_SSN, A_Name, bpb.RoutingNo AS SwiftCode , bpa.A_Email " +
 					"FROM C_BP_BankAccount bpa " +
 					"LEFT JOIN C_Bank bpb ON(bpb.C_Bank_ID = bpa.C_Bank_ID) " +
 					"WHERE bpa.C_BP_BankAccount_ID = ? " ;
