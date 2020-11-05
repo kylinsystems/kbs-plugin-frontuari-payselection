@@ -489,7 +489,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.GrandTotal,"	//	8
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay, "	// 10
-					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
+					+ "COALESCE((SELECT MAX('Y') FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
