@@ -157,7 +157,10 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 					else
 					{
 						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
-						payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
+						if(prl.getFTU_PaymentRequest().getC_Charge_ID() > 0)
+							payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
+						else
+							payment.setIsPrepayment(true);
 					}
 					payment.setDiscountAmt (psl.getDiscountAmt());
 					payment.setWriteOffAmt (psl.getWriteOffAmt());
@@ -176,7 +179,10 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 					{
 						MPaySelectionLine psl = psls[0];
 						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
-						payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
+						if(prl.getFTU_PaymentRequest().getC_Charge_ID() > 0)
+							payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
+						else
+							payment.setIsPrepayment(true);
 					}
 					payment.setWriteOffAmt(Env.ZERO);
 					payment.setDiscountAmt(Env.ZERO);

@@ -255,12 +255,12 @@ public class B_BanescoPE implements PaymentExport {
 				String p_PaymentTerm = "";
 				//2015-02-20 Carlos Parada Compare Bank of Payment
 				if (mpp.getC_BP_BankAccount_ID() != 0){
-					MBPBankAccount ba = new MBPBankAccount (mpp.getCtx(), mpp.getC_BP_BankAccount_ID(), mpp.get_TrxName());
-					if (ba.getC_Bank_ID() != 0 ){
-						MBank bank = new MBank(Env.getCtx(), ba.getC_Bank_ID(), ba.get_TrxName());
-						if (bank.getSwiftCode().equals(bp[BPA_SWIFTCODE]))
+					//MBPBankAccount ba = new MBPBankAccount (mpp.getCtx(), mpp.getC_BP_BankAccount_ID(), mpp.get_TrxName());
+					//if (ba.getC_Bank_ID() != 0 ){
+						//MBank bank = new MBank(Env.getCtx(), ba.getC_Bank_ID(), ba.get_TrxName());
+						if (mBank.getRoutingNo().equals(bp[BPA_SWIFTCODE]))
 							p_PaymentTerm = String.format("%1$-"+ 3 +"s","42");
-					}
+					//}
 				}
 				if (p_PaymentTerm.equals(""))
 					p_PaymentTerm = String.format("%1$-"+ 3 +"s","425");
