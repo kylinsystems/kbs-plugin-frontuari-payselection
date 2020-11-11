@@ -137,9 +137,14 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 					payment.setC_PaymentBatch_ID(batch.getC_PaymentBatch_ID());
 				}
 				//	Link to Invoice
-				MPaySelectionLine[] psls = check.getPaySelectionLines(true);
+				MPaySelectionLine[] psls = null;
+				if(check.getQty() == 1 || dt.get_ValueAsBoolean("IsManual")) {
+					psls = check.getPaySelectionLines(true);
+				}				
 				if (s_log.isLoggable(Level.FINE)) s_log.fine("confirmPrint - " + check + " (#SelectionLines=" + psls.length + ")");
-				if (check.getQty() == 1 && psls != null && psls.length == 1)
+				
+				//if (check.getQty() == 1 && psls != null && psls.length == 1)
+				if (psls != null && psls.length == 1)
 				{
 					MPaySelectionLine psl = psls[0];
 					if (s_log.isLoggable(Level.FINE)) s_log.fine("Map to Invoice " + psl);
