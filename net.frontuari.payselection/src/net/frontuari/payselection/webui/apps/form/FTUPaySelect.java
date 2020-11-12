@@ -480,8 +480,8 @@ public class FTUPaySelect extends FTUForm {
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_InvoicePaySchedule ips WHERE ips.C_InvoicePaySchedule_ID=i.C_InvoicePaySchedule_ID),i.DateInvoiced+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,null, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,null, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountDue", BigDecimal.class),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
 					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class) 
 					},
@@ -495,13 +495,13 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN C_BP_BankAccount bpba ON (prl.C_BP_BankAccount_ID=bpba.C_BP_BankAccount_ID)"
 					+ " INNER JOIN C_Bank b ON (bpba.C_Bank_ID=b.C_Bank_ID)"
 					+ " LEFT JOIN (SELECT psl.FTU_PaymentRequestLine_ID,"
-					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,prf.c_currency_id,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
+					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,prf.c_currency_id,ps.PayDate,prf.C_ConversionType_ID,prf.AD_Client_ID,prf.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
 					+ " INNER JOIN FTU_PaymentRequestLine prlf ON prlf.ftu_paymentrequestline_id = psl.ftu_paymentrequestline_id"
 					+ " INNER JOIN FTU_PaymentRequest prf ON  prlf.ftu_paymentrequest_id = prf.ftu_paymentrequest_id"
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
-					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
+					//+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
 					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NOT NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.FTU_PaymentRequestLine_ID) psl ON (prl.FTU_PaymentRequestLine_ID=psl.FTU_PaymentRequestLine_ID) "
