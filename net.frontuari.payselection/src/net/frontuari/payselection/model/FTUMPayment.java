@@ -254,6 +254,12 @@ public class FTUMPayment extends MPayment {
 			getDateTrx(), getC_Currency_ID(), 
 				Msg.translate(getCtx(), "C_Payment_ID")	+ ": " + getDocumentNo(), 
 				get_TrxName());
+
+		MDocType docType = (MDocType)getC_DocType();
+		int C_DocTypeAllocation_ID = docType.get_ValueAsInt("C_DocTypeAllocation_ID");
+		if(C_DocTypeAllocation_ID>0)
+			alloc.setC_DocType_ID(C_DocTypeAllocation_ID);
+		
 		alloc.setAD_Org_ID(getAD_Org_ID());
 		alloc.setDateAcct(getDateAcct()); // in case date acct is different from datetrx in payment; IDEMPIERE-1532 tbayen
 		if (!alloc.save())
@@ -356,7 +362,13 @@ public class FTUMPayment extends MPayment {
 	{
 		MAllocationHdr alloc = new MAllocationHdr(getCtx(), false, 
 			getDateTrx(), getC_Currency_ID(),
-			Msg.translate(getCtx(), "C_Payment_ID")	+ ": " + getDocumentNo() + " [n]", get_TrxName());
+			Msg.translate(getCtx(), "C_Payment_ID")	+ ": " + getDocumentNo() + " [n]", get_TrxName());		
+
+		MDocType docType = (MDocType)getC_DocType();
+		int C_DocTypeAllocation_ID = docType.get_ValueAsInt("C_DocTypeAllocation_ID");
+		if(C_DocTypeAllocation_ID>0)
+			alloc.setC_DocType_ID(C_DocTypeAllocation_ID);
+		
 		alloc.setAD_Org_ID(getAD_Org_ID());
 		alloc.setDateAcct(getDateAcct()); // in case date acct is different from datetrx in payment
 		
