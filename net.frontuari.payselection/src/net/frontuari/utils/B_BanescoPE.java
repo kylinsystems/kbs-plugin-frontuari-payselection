@@ -19,7 +19,9 @@ package net.frontuari.utils;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -127,11 +129,11 @@ public class B_BanescoPE implements PaymentExport {
 		p_orgTaxID = String.format("%1$-" + 17 + "s", p_orgTaxID);
 		String p_clientName = String.format("%1$-"+ 35 +"s", m_Client.getName());
 		//	Payment Amount
-		String p_totalAmt = String.format("%.2f", m_PaySelection.getTotalAmt().abs()).replace(".", "").replace(",", "");
+		String p_totalAmt = ""; //String.format("%.2f", m_PaySelection.getTotalAmt().abs()).replace(".", "").replace(",", "");
 		//	Modified by Jorge Colmenarez 2015-08-09
 		//	Add Support for Big Integer and Solved NumberFormatException when value is major 2147483648 
-		BigInteger bigInt = new BigInteger(p_totalAmt, 10);
-		p_totalAmt = String.format("%0" + 15 + "d", bigInt);
+		/*BigInteger bigInt = new BigInteger(p_totalAmt, 10);
+		p_totalAmt = String.format("%0" + 15 + "d", bigInt);*/
 		//	End Jorge Colmenarez
 		String p_ISO_Code = "VES";
 		String p_Free_Field = String.format("%1$-"+ 1 +"s","");
@@ -142,6 +144,8 @@ public class B_BanescoPE implements PaymentExport {
 		p_bankAccountNo = String.format("%1$-" + 34 + "s", p_bankAccountNo);
 		String p_BankCodeOrder = String.format("%1$-"+ 11 +"s","BANESCO");
 		String p_PayDate = sdf.format(m_PaySelection.getPayDate());
+		
+		BigDecimal totalAmt = BigDecimal.ZERO;
 		//	End Fields 
 		
 		
@@ -183,7 +187,7 @@ public class B_BanescoPE implements PaymentExport {
 			noLines++;
 			
 			//  Write Debit Note
-			line = new StringBuffer();
+			/*line = new StringBuffer();
 			//	Set Value Type Register for Debit Note Register
 			p_Type_Register = "02";
 			
@@ -201,7 +205,7 @@ public class B_BanescoPE implements PaymentExport {
 				.append(p_PayDate);														//  Payment Date 
 				
 			fw.write(line.toString());
-			noLines++;
+			noLines++;*/
 			int con=0;
 			//  Write Credit Note
 			for (int i = 0; i < checks.length; i++)
@@ -216,13 +220,15 @@ public class B_BanescoPE implements PaymentExport {
 				
 				//	Payment Detail
 				//	Credit Register
-				p_Type_Register = "03";
 				//	Process Document No
 				String p_docNo = mpp.getDocumentNo();
 				p_docNo = p_docNo.substring(0, (p_docNo.length() >= 8? 8: p_docNo.length()));
 				p_docNo = String.format("%0"+ 8 +"d",Integer.parseInt(mpp.getDocumentNo()));
+				BigDecimal paymentAmt = mpp.getPayAmt().abs();
+				
+				totalAmt = totalAmt.add(paymentAmt.setScale(2, RoundingMode.HALF_UP));
 				//	Payment Amount
-				String p_Amt = String.format("%.2f", mpp.getPayAmt().abs()).replace(".", "").replace(",", "");
+				String p_Amt = String.format("%.2f", paymentAmt).replace(".", "").replace(",", "");
 				//	Modified By Jorge Colmenarez 2015-02-19 
 				//	Changed Method parseInt because the string value is major that 2147483647
 				//	referenced Integer.class Line 397      * parseInt("2147483647", 10) returns 2147483647
@@ -265,7 +271,30 @@ public class B_BanescoPE implements PaymentExport {
 				if (p_PaymentTerm.equals(""))
 					p_PaymentTerm = String.format("%1$-"+ 3 +"s","425");
 				//End Carlos Parada
+				
+				line = new StringBuffer();
+				//	Set Value Type Register for Debit Note Register
+				p_Type_Register = "02";
+				
+				//	Debit Note
+				line.append(Env.NL)															//	New Line
+					.append(p_Type_Register)												//  Type Register
+					.append(String.format("%1$-"+ 30 +"s",p_DebitReferenceNo))				//	Reference Number
+					.append(p_orgTaxID)														//  Organization Tax ID
+					.append(p_clientName)													//  Client Name
+					.append(p_Amt)														//  Total Amt
+					.append(p_ISO_Code)														//  ISO Code Currency
+					.append(p_Free_Field)													//  Free Field
+					.append(p_bankAccountNo)												//  Bank Account Number
+					.append(p_BankCodeOrder)												//  Bank Order Code
+					.append(p_PayDate);														//  Payment Date 
+					
+				fw.write(line.toString());
+				noLines++;
+				
 				//	Write Credit Register
+				p_Type_Register = "03";
+				
 				line = new StringBuffer();
 				
 				line.append(Env.NL)															//	New Line
@@ -295,8 +324,11 @@ public class B_BanescoPE implements PaymentExport {
 			//	Totals Register
 			//	Set Value Type Register for Totals Register
 			p_Type_Register = "06";
-			String p_CountDebit = String.format("%0"+ 15 +"d",1);
+			String p_CountDebit = String.format("%0"+ 15 +"d",con);
 			String p_CountCredit = String.format("%0"+ 15 +"d",con);
+			p_totalAmt = String.format("%.2f", totalAmt).replace(".", "").replace(",", "");
+			BigInteger bigInt = new BigInteger(p_totalAmt, 10);
+			p_totalAmt = String.format("%0" + 15 + "d", bigInt);
 			//	Set p_TotalAmt
 			
 			//	Write Totals
