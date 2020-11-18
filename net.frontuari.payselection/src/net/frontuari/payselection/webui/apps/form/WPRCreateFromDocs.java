@@ -540,7 +540,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " INNER JOIN C_BPartner bp ON (i.C_BPartner_ID=bp.C_BPartner_ID)"
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
-					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID AND EXISTS (select 1 from C_PaySchedule ps where p.C_PaymentTerm_ID = ps.C_PaymentTerm_ID AND ps.IsActive = 'Y'))"
+					+ "  INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID AND EXISTS (select 1 from C_PaySchedule ps where p.C_PaymentTerm_ID = ps.C_PaymentTerm_ID AND ps.IsActive = 'Y'))"
 					+ " LEFT JOIN (SELECT psl.C_Order_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
