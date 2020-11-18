@@ -87,7 +87,7 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 			check.set_TrxName(trxName);
 		}
 		try {
-			FTUMPayment payment = new FTUMPayment(check.getCtx(), check.getC_Payment_ID(), trxName);
+			FTUMPayment payment = new FTUMPayment(check.getCtx(), check.getC_Payment_ID(), null); // Se envia la consulta del objeto sin transaccion, ya que este bloquea la transaccion.
 			//	Existing Payment
 			if (check.getC_Payment_ID() != 0)
 			{
@@ -265,7 +265,7 @@ public class FTUMPaySelectionCheck extends MPaySelectionCheck {
 			Trx trx = null;
 			if (trxName == null) {
 				localTrx = true;
-				trxName = Trx.createTrxName("ConfirmPrintMulti");
+				trxName = Trx.createTrxName("FTUConfirmPrintMulti");
 				trx = Trx.get(trxName, true);
 			}
 

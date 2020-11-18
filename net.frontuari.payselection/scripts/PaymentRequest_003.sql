@@ -1,150 +1,102 @@
---DROP VIEW FTU_RV_OpenPayment;
-CREATE OR REPLACE VIEW FTU_RV_OpenPayment AS
-SELECT 
-	t.AD_Client_ID,
-	t.AD_Org_ID,
-	DocumentNo,
-	Record_ID,
-	t.C_BPartner_ID,
-	DateDoc,
-	DateAcct,
-	OpenAmt,
-	C_DocType_ID,
-	IsSOTrx,
-	RequestType,
-	DueDate,
-	bp.Name
-	--2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt
-	,PrepaidAmt,
-	AllocatedAmt,
-	--End Carlos Parada
-	GrandTotal,
-	--2015-05-30 Carlos Parada Add DocStatus
-	DocStatus
-	--End Carlos Parada
-	,C_Currency_ID
-	,C_ConversionType_ID 
-FROM  (
-SELECT 
-	AD_Client_ID,
-	AD_Org_ID,
-	DocumentNo,
-	RV_OpenItem.C_Invoice_ID AS Record_ID,
-	C_BPartner_ID,
-	DateInvoiced AS DateDoc,
-	DateAcct,
-	--OpenAmt,	
-	PaymentRequestOpen('API',RV_OpenItem.C_Invoice_ID,C_InvoicePaySchedule_ID) OpenAmt,	
-	C_DocType_ID,
-	IsSOTrx,
-	'API' AS RequestType,
-	DueDate,
-	GrandTotal,
-	--2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt
-	COALESCE(pay.PayAmt,0)::numeric as prepaidamt,
-	COALESCE(RV_OpenItem.PaidAmt,0)::numeric AllocatedAmt,
-	--End Carlos Parada
-	--2015-05-30 Carlos Parada Add DocStatus
-	RV_OpenItem.DocStatus
-	--End Carlos Parada
-   	,RV_OpenItem.C_Currency_ID
-   	,RV_OpenItem.C_ConversionType_ID 
-FROM RV_OpenItem
-/** 2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt*/
-LEFT JOIN (
-	SELECT 
-		C_Order_ID,
-		SUM(PayAmt) As PayAmt 
-	FROM C_Payment 
-	WHERE 
-		DocStatus IN ('CO','CL') 
-		AND IsAllocated ='N' 
-	GROUP BY C_Order_ID
-) pay ON pay.C_Order_ID = RV_OpenItem.C_Order_ID
-/** End Carlos Parada*/
-UNION ALL
-SELECT
-	AD_Client_ID,
-	AD_Org_ID,
-	DocumentNo,
-	C_Order_ID AS Record_ID,
-	C_BPartner_ID,
-	DateOrdered AS DateDoc,
-	DateAcct,
-	PaymentRequestOpen('POO',C_Order_ID,C_OrderPaySchedule_ID) AS OpenAmt,
-	C_DocType_ID,
-	IsSOTrx,
-	'POO' AS RequestType,
-	DueDate,
-	GrandTotal,
-	--2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt
-	0::numeric as prepaidamt,
-	0::numeric AllocatedAmt,
-	--End Carlos Parada
-	--2015-05-30 Carlos Parada Add DocStatus
-	FTU_Order_V.DocStatus
-	--End Carlos Parada
-   	,FTU_Order_V.C_Currency_ID
-   	,FTU_Order_V.C_ConversionType_ID
-FROM FTU_Order_V
-/** 2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt*/
-WHERE 
-	FTU_Order_V.DocStatus='WP' 
-	OR (
-		FTU_Order_V.DocStatus='CO' 
-		AND EXISTS (
-			SELECT 1 
-			FROM C_DocType dt 
-			WHERE 
-				FTU_Order_V.C_DocType_ID=dt.C_DocType_ID 
-				AND (dt.DocSubTypeSO='SO' OR dt.DocBaseType='POO')
-			)
-		AND EXISTS (
-			SELECT 1 
-			FROM C_OrderLine ol 
-			WHERE 
-				FTU_Order_V.C_Order_ID=ol.C_Order_ID 
-				AND ol.QtyInvoiced<>ol.QtyOrdered
-		)
-	)/** End Carlos Parada*/
-UNION ALL
-SELECT 
-	gljb.AD_Client_ID,
-	gljb.AD_Org_ID,
-	gljb.DocumentNo ||'-'||gljl.Line AS DocumentNO,
-	gljl.GL_JournalLine_ID AS Record_ID,
-	gljl.C_BPartner_ID,
-	gljb.DateDoc,
-	gljb.DateAcct,
-	(gljl.AmtSourceDR - gljl.AmtSourceCR) - COALESCE(t.PayAmt,0) OpenAmt,
-	gljb.C_DocType_ID,
-	'N' IsSOTrx,
-	'GLJ' AS RequestType,
-	gljb.DateDoc DueDate,
-	NULL GrandTotal,
-	--2014-11-24 Carlos Parada Add Prepay Amt And Allocate Amt
-	0::numeric as prepaidamt,
-	0::numeric AllocatedAmt,
-	--End Carlos Parada
-	--2015-05-30 Carlos Parada Add DocStatus
-	gljb.DocStatus
-	--End Carlos Parada
-   	,glj.C_Currency_ID
-   	,glj.C_ConversionType_ID
-FROM GL_JournalBatch gljb
-INNER JOIN GL_Journal glj ON (gljb.GL_JournalBatch_ID = glj.GL_JournalBatch_ID)
-INNER JOIN GL_JournalLine gljl ON (glj.GL_Journal_ID = gljl.GL_Journal_ID)
-LEFT JOIN (
-	SELECT GL_JournalLine_ID,SUM(prl.PayAmt) PayAmt
-	FROM FTU_PaymentRequestLine prl 
-	INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID )
-	WHERE 
-		(pr.DocStatus ='CO' OR  pr.DocStatus IS NULL)
-	GROUP BY 
-		GL_JournalLine_ID
-
-) t ON (t.GL_JournalLine_ID = gljl.GL_JournalLine_ID) 
-WHERE
-	gljl.C_BPartner_ID IS NOT NULL
-) t
-INNER JOIN C_BPartner bp ON (t.C_BPartner_ID = bp.C_BPartner_ID );
+CREATE OR REPLACE VIEW adempiere.ftu_rv_openpayment
+AS SELECT t.ad_client_id,
+    t.ad_org_id,
+    t.documentno,
+    t.record_id,
+    t.c_bpartner_id,
+    t.datedoc,
+    t.dateacct,
+    t.openamt,
+    t.c_doctype_id,
+    t.issotrx,
+    t.requesttype,
+    t.duedate,
+    bp.name,
+    t.prepaidamt,
+    t.allocatedamt,
+    t.grandtotal,
+    t.docstatus,
+    t.c_currency_id,
+    t.c_conversiontype_id
+   FROM ( SELECT rv_openitem.ad_client_id,
+            rv_openitem.ad_org_id,
+            rv_openitem.documentno,
+            rv_openitem.c_invoice_id AS record_id,
+            rv_openitem.c_bpartner_id,
+            rv_openitem.dateinvoiced AS datedoc,
+            rv_openitem.dateacct,
+            paymentrequestopen('API'::character varying, rv_openitem.c_invoice_id, rv_openitem.c_invoicepayschedule_id) AS openamt,
+            rv_openitem.c_doctype_id,
+            rv_openitem.issotrx,
+            'API'::text AS requesttype,
+            rv_openitem.duedate,
+            rv_openitem.grandtotal,
+            COALESCE(pay.payamt, 0::numeric) AS prepaidamt,
+            COALESCE(rv_openitem.paidamt, 0::numeric) AS allocatedamt,
+            rv_openitem.docstatus,
+            rv_openitem.c_currency_id,
+            rv_openitem.c_conversiontype_id
+           FROM rv_openitem
+             LEFT JOIN ( SELECT c_payment.c_order_id,
+                    sum(c_payment.payamt) AS payamt
+                   FROM c_payment
+                  WHERE (c_payment.docstatus = ANY (ARRAY['CO'::bpchar, 'CL'::bpchar])) AND c_payment.isallocated = 'N'::bpchar
+                  GROUP BY c_payment.c_order_id) pay ON pay.c_order_id = rv_openitem.c_order_id
+        UNION ALL
+         SELECT ftu_order_v.ad_client_id,
+            ftu_order_v.ad_org_id,
+            ftu_order_v.documentno,
+            ftu_order_v.c_order_id AS record_id,
+            ftu_order_v.c_bpartner_id,
+            ftu_order_v.dateordered AS datedoc,
+            ftu_order_v.dateacct,
+            paymentrequestopen('POO'::character varying, ftu_order_v.c_order_id, ftu_order_v.c_orderpayschedule_id) AS openamt,
+            ftu_order_v.c_doctype_id,
+            ftu_order_v.issotrx,
+            'POO'::text AS requesttype,
+            ftu_order_v.duedate,
+            ftu_order_v.grandtotal,
+            0::numeric AS prepaidamt,
+            0::numeric AS allocatedamt,
+            ftu_order_v.docstatus,
+            ftu_order_v.c_currency_id,
+            ftu_order_v.c_conversiontype_id
+           FROM ftu_order_v
+          WHERE ftu_order_v.docstatus = 'WP'::bpchar OR ftu_order_v.docstatus = 'CO'::bpchar AND (EXISTS ( SELECT 1
+                   FROM c_doctype dt
+                  WHERE ftu_order_v.c_doctype_id = dt.c_doctype_id AND (dt.docsubtypeso = 'SO'::bpchar OR dt.docbasetype = 'POO'::bpchar))) AND (EXISTS ( SELECT 1
+                   FROM c_orderline ol
+                  WHERE ftu_order_v.c_order_id = ol.c_order_id AND ol.qtyinvoiced <> ol.qtyordered))
+        UNION ALL
+         SELECT glj.ad_client_id,
+            glj.ad_org_id,
+            glj.documentno,
+            glj.gl_journal_id AS record_id,
+            glj.c_bpartner_id,
+            glj.datedoc,
+            glj.dateacct,
+            sum(gljl.amtsourcecr) - COALESCE(t_1.payamt, 0::numeric) AS openamt,
+            glj.c_doctype_id,
+            'N'::bpchar AS issotrx,
+            'GLJ'::text AS requesttype,
+            glj.datedoc AS duedate,
+            NULL::numeric AS grandtotal,
+            0::numeric AS prepaidamt,
+            0::numeric AS allocatedamt,
+            glj.docstatus,
+            glj.c_currency_id,
+            glj.c_conversiontype_id
+           FROM gl_journal glj
+             JOIN gl_journalline gljl ON glj.gl_journal_id = gljl.gl_journal_id
+             JOIN ( SELECT DISTINCT dt.account_id
+                   FROM c_doctype dt
+                  WHERE dt.isactive = 'Y'::bpchar) dtacc ON dtacc.account_id = gljl.account_id
+             LEFT JOIN ( SELECT prl.gl_journal_id,
+                    sum(prl.payamt) AS payamt
+                   FROM ftu_paymentrequestline prl
+                     JOIN ftu_paymentrequest pr ON pr.ftu_paymentrequest_id = prl.ftu_paymentrequest_id
+                  WHERE pr.docstatus::text = ANY (ARRAY['CO'::character varying::text, 'CL'::character varying::text])
+                  GROUP BY prl.gl_journal_id) t_1 ON t_1.gl_journal_id = glj.gl_journal_id
+          WHERE glj.c_bpartner_id IS NOT NULL
+          GROUP BY glj.ad_client_id, glj.ad_org_id, glj.documentno, glj.gl_journal_id, glj.c_bpartner_id, glj.datedoc, glj.dateacct, glj.c_doctype_id, glj.docstatus, glj.c_currency_id, glj.c_conversiontype_id, t_1.payamt) t
+     JOIN c_bpartner bp ON t.c_bpartner_id = bp.c_bpartner_id;

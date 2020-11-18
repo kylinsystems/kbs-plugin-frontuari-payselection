@@ -1,6 +1,7 @@
-CREATE OR REPLACE FUNCTION paymentrequestopen(p_requesttype character varying, p_record_id numeric, p_recordpayschedule_id numeric)
-  RETURNS numeric AS
-$BODY$
+CREATE OR REPLACE FUNCTION adempiere.paymentrequestopen(p_requesttype character varying, p_record_id numeric, p_recordpayschedule_id numeric)
+ RETURNS numeric
+ LANGUAGE plpgsql
+AS $function$
 DECLARE
 	v_TotalOpenAmt  	NUMERIC := 0;
 	v_C_Invoice_ID		NUMERIC := 0;
@@ -120,8 +121,5 @@ BEGIN
     RAISE NOTICE 'v_TotalOpenAmt % ',v_TotalOpenAmt;
     RETURN	v_TotalOpenAmt;
 END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION paymentrequestopen(character varying, numeric, numeric)
-  OWNER TO adempiere;
+$function$
+;

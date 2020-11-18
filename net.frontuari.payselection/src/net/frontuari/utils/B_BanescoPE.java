@@ -27,8 +27,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.logging.Level;
-
-import org.compiere.model.MBPBankAccount;
 import org.compiere.model.MBank;
 import org.compiere.model.MBankAccount;
 import org.compiere.model.MClient;
@@ -129,11 +127,11 @@ public class B_BanescoPE implements PaymentExport {
 		p_orgTaxID = String.format("%1$-" + 17 + "s", p_orgTaxID);
 		String p_clientName = String.format("%1$-"+ 35 +"s", m_Client.getName());
 		//	Payment Amount
-		String p_totalAmt = ""; //String.format("%.2f", m_PaySelection.getTotalAmt().abs()).replace(".", "").replace(",", "");
+		String p_totalAmt = String.format("%.2f", m_PaySelection.getTotalAmt().abs()).replace(".", "").replace(",", "");
 		//	Modified by Jorge Colmenarez 2015-08-09
 		//	Add Support for Big Integer and Solved NumberFormatException when value is major 2147483648 
-		/*BigInteger bigInt = new BigInteger(p_totalAmt, 10);
-		p_totalAmt = String.format("%0" + 15 + "d", bigInt);*/
+		BigInteger bigInt = new BigInteger(p_totalAmt, 10);
+		p_totalAmt = String.format("%0" + 15 + "d", bigInt);
 		//	End Jorge Colmenarez
 		String p_ISO_Code = "VES";
 		String p_Free_Field = String.format("%1$-"+ 1 +"s","");
@@ -279,10 +277,10 @@ public class B_BanescoPE implements PaymentExport {
 				//	Debit Note
 				line.append(Env.NL)															//	New Line
 					.append(p_Type_Register)												//  Type Register
-					.append(String.format("%1$-"+ 30 +"s",p_DebitReferenceNo))				//	Reference Number
+					.append(String.format("%1$-"+ 30 +"s",p_docNo))							//	Reference Number
 					.append(p_orgTaxID)														//  Organization Tax ID
 					.append(p_clientName)													//  Client Name
-					.append(p_Amt)														//  Total Amt
+					.append(p_Amt)															//  Total Amt
 					.append(p_ISO_Code)														//  ISO Code Currency
 					.append(p_Free_Field)													//  Free Field
 					.append(p_bankAccountNo)												//  Bank Account Number
@@ -327,7 +325,7 @@ public class B_BanescoPE implements PaymentExport {
 			String p_CountDebit = String.format("%0"+ 15 +"d",con);
 			String p_CountCredit = String.format("%0"+ 15 +"d",con);
 			p_totalAmt = String.format("%.2f", totalAmt).replace(".", "").replace(",", "");
-			BigInteger bigInt = new BigInteger(p_totalAmt, 10);
+			bigInt = new BigInteger(p_totalAmt, 10);
 			p_totalAmt = String.format("%0" + 15 + "d", bigInt);
 			//	Set p_TotalAmt
 			

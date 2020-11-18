@@ -1,7 +1,7 @@
 alter table c_order add column prepaymentinvdisc char(2) default null;
 
-CREATE OR REPLACE VIEW adempiere.ftu_rv_order_v AS 
-SELECT o.ad_client_id,
+CREATE OR REPLACE VIEW adempiere.ftu_rv_order_v
+AS SELECT o.ad_client_id,
     o.ad_org_id,
     o.ad_orgtrx_id,
     o.ad_user_id,

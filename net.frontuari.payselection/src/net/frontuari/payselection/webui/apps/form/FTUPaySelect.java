@@ -440,7 +440,7 @@ public class FTUPaySelect extends FTUForm {
 					+ " INNER JOIN FTU_PaymentRequest prf ON  prlf.ftu_paymentrequest_id = prf.ftu_paymentrequest_id"
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
-					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
+					+ " INNER JOIN C_Order i ON psl.C_Order_ID = i.C_Order_ID "
 					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NOT NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.FTU_PaymentRequestLine_ID) psl ON (prl.FTU_PaymentRequestLine_ID=psl.FTU_PaymentRequestLine_ID) "

@@ -19,8 +19,7 @@ BEGIN
 		SELECT	MAX(C_Currency_ID), SUM(GrandTotal)
 		INTO	v_Currency_ID, v_TotalOpenAmt
 		FROM	FTU_Order_V				
-        WHERE	C_Order_ID = p_C_Order_ID
-                AND IsInvoiced = 'N';
+        WHERE	C_Order_ID = p_C_Order_ID;
         	EXCEPTION			WHEN OTHERS THEN
             	RAISE NOTICE 'orderOpen - %', SQLERRM;
 			RETURN NULL;
