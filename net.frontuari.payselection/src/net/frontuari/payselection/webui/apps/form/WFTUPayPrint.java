@@ -63,6 +63,7 @@ import org.compiere.util.DB;
 import org.compiere.util.DisplayType;
 import org.compiere.util.Env;
 import org.compiere.util.Msg;
+import org.compiere.util.Trx;
 import org.compiere.util.ValueNamePair;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zul.Borderlayout;
@@ -455,7 +456,7 @@ public class WFTUPayPrint extends FTUPayPrint implements ValueChangeListener {
 					{
 						if (result)
 						{
-							FTUMPaySelectionCheck.confirmPrint (m_checks, m_batch, (Boolean) fDepositBatch.getValue());
+							confirmPrint (m_checks, m_batch, (Boolean) fDepositBatch.getValue(),m_checks[0].get_TrxName());
 							//	document No not updated
 						}
 						
@@ -529,8 +530,8 @@ public class WFTUPayPrint extends FTUPayPrint implements ValueChangeListener {
 			check.saveEx(); 
 			
 			//	Update BankAccountDoc
-			FTUMPaySelectionCheck.confirmPrint(m_checks[i], m_batch);
-
+			confirmPrint(check, m_batch, check.get_TrxName());
+			
 			//	ReportCtrl will check BankAccountDoc for PrintFormat
 			ReportEngine re = ReportEngine.get(Env.getCtx(), ReportEngine.CHECK, check.get_ID());
 			try
@@ -676,8 +677,13 @@ public class WFTUPayPrint extends FTUPayPrint implements ValueChangeListener {
 
 		if (log.isLoggable(Level.CONFIG)) log.config("C_PaySelection_ID=" + m_C_PaySelection_ID + ", PaymentRule=" +  PaymentRule);
 		
+		//	Added by Jorge Colmenarez, 2020-11-19 16:44
+		//	Create Trx
+		String trxName = Trx.createTrxName("ConfirmPrintExport");
+		Trx trx = Trx.get(trxName, true);
+		trx.setDisplayName(WFTUPayPrint.class.getName()+"_confirmPrintExport");
 		//	get payment selection checks without check no assignment
-		m_checks = FTUMPaySelectionCheck.get(m_C_PaySelection_ID, PaymentRule, null);
+		m_checks = FTUMPaySelectionCheck.get(m_C_PaySelection_ID, PaymentRule, trxName);
 
 		//
 		if (m_checks == null || m_checks.length == 0)
@@ -686,7 +692,7 @@ public class WFTUPayPrint extends FTUPayPrint implements ValueChangeListener {
 				"(" + Msg.translate(Env.getCtx(), "C_PaySelectionLine_ID") + " #0");
 			return false;
 		}
-		m_batch = MPaymentBatch.getForPaySelection (Env.getCtx(), m_C_PaySelection_ID, null);
+		m_batch = MPaymentBatch.getForPaySelection (Env.getCtx(), m_C_PaySelection_ID, trxName);
 		return true;
 	}   //  getChecks
 
