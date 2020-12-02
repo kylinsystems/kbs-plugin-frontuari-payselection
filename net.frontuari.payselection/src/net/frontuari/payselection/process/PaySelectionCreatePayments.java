@@ -36,6 +36,9 @@ public class PaySelectionCreatePayments extends FTUProcess {
 			else if ("PaymentRule".equals(name))
 				p_PaymentRule = parameter.getParameterAsString();
 		}
+		
+		if (p_C_PaySelection_ID <= 0)
+			p_C_PaySelection_ID = getRecord_ID();
 	}
 
 	@Override
