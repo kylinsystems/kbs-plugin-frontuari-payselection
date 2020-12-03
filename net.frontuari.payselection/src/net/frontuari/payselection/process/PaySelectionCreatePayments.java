@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.adempiere.exceptions.AdempiereException;
+import org.compiere.model.MPaySelection;
 import org.compiere.model.MPaymentBatch;
 import org.compiere.process.ProcessInfoParameter;
 
@@ -46,6 +47,11 @@ public class PaySelectionCreatePayments extends FTUProcess {
 		
 		if (p_C_PaySelection_ID <= 0)
 			throw new AdempiereException("@FillMandatory@ @C_PaySelection_ID@");
+		
+		MPaySelection paySelection = new MPaySelection(getCtx(), p_C_PaySelection_ID, get_TrxName());
+		
+		if (!paySelection.isProcessed())
+			throw new AdempiereException("@C_PaySelection_ID@ @no@ @Processed@");
 		
 		FTUMPaySelectionCheck [] checks = FTUMPaySelectionCheck.get(p_C_PaySelection_ID, p_PaymentRule, get_TrxName());
 		MPaymentBatch payBatch = MPaymentBatch.getForPaySelection(getCtx(), p_C_PaySelection_ID, get_TrxName());
