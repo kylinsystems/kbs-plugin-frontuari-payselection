@@ -568,4 +568,51 @@ public class FTUPayPrint extends FTUForm {
 		}
 	}	//	confirmPrint
 	
+	/**************************************************************************
+	 *  Get Checks of Payment Selection without check no assignment
+	 *
+	 *  @param C_PaySelection_ID Payment Selection
+	 *  @param PaymentRule Payment Rule
+	 *	@param trxName transaction
+	 *  @return array of checks
+	 */
+	public FTUMPaySelectionCheck[] getPaySelectionCheck (int C_PaySelection_ID, String PaymentRule, String trxName)
+	{
+		if (s_log.isLoggable(Level.FINE)) s_log.fine("C_PaySelection_ID=" + C_PaySelection_ID
+			+ ", PaymentRule=" +  PaymentRule);
+		ArrayList<FTUMPaySelectionCheck> list = new ArrayList<FTUMPaySelectionCheck>();
+
+		String sql = "SELECT * FROM C_PaySelectionCheck "
+			+ "WHERE C_PaySelection_ID=? AND PaymentRule=? "
+			+ "ORDER BY C_PaySelectionCheck_ID"; // order by the C_PaySelectionCheck_ID
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		try
+		{
+			pstmt = DB.prepareStatement(sql, trxName);
+			pstmt.setInt(1, C_PaySelection_ID);
+			pstmt.setString(2, PaymentRule);
+			rs = pstmt.executeQuery();
+			while (rs.next())
+			{
+				FTUMPaySelectionCheck check = new FTUMPaySelectionCheck (Env.getCtx(), rs, trxName);
+				list.add(check);
+			}
+		}
+		catch (SQLException e)
+		{
+			s_log.log(Level.SEVERE, sql, e);
+		}
+		finally
+		{
+			DB.close(rs, pstmt);
+			rs = null;
+			pstmt = null;
+		}
+		//  convert to Array
+		FTUMPaySelectionCheck[] retValue = new FTUMPaySelectionCheck[list.size()];
+		list.toArray(retValue);
+		return retValue;
+	}   //  get
+	
 }

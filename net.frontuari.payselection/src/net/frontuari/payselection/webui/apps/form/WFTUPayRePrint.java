@@ -681,7 +681,7 @@ public class WFTUPayRePrint extends FTUPayPrint implements ValueChangeListener {
 		Trx trx = Trx.get(trxName, true);
 		trx.setDisplayName(WFTUPayRePrint.class.getName()+"_rePrintExport");
 		//	get payment selection checks without check no assignment
-		m_checks = FTUMPaySelectionCheck.get(m_C_PaySelection_ID, PaymentRule, trxName);
+		m_checks = getPaySelectionCheck(m_C_PaySelection_ID, PaymentRule, trxName);
 
 		//
 		if (m_checks == null || m_checks.length == 0)
