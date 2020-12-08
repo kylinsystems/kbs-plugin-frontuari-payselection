@@ -453,7 +453,14 @@ public class FTUPayPrint extends FTUForm {
 				MDocType dt = new MDocType(Env.getCtx(), ps.get_ValueAsInt("C_DocType_ID"), trxName);
 				int C_DocTypePayment_ID = dt.get_ValueAsInt("C_DocTypePayment_ID");
 				if(C_DocTypePayment_ID>0)
+				{
+					//	Added By Jorge Colmenarez, 2020-12-08 16:37
+					//	Get DocumentNo from Database function
 					payment.setC_DocType_ID(C_DocTypePayment_ID);
+					String DocumentNo = DB.getSQLValueString(trxName, "SELECT NextDocNo("+C_DocTypePayment_ID+")");
+					payment.setDocumentNo(DocumentNo);
+					//	End Jorge Colmenarez
+				}
 				//
 				if (check.getPaymentRule().equals(FTUMPaySelectionCheck.PAYMENTRULE_Check))
 					payment.setBankCheck (check.getParent().getC_BankAccount_ID(), false, check.getDocumentNo());
