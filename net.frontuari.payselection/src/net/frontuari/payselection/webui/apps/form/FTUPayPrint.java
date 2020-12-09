@@ -457,7 +457,7 @@ public class FTUPayPrint extends FTUForm {
 					//	Added By Jorge Colmenarez, 2020-12-08 16:37
 					//	Get DocumentNo from Database function
 					payment.setC_DocType_ID(C_DocTypePayment_ID);
-					String DocumentNo = DB.getSQLValueString(trxName, "SELECT NextDocNo("+C_DocTypePayment_ID+")");
+					String DocumentNo = DB.getSQLValueString(trxName, "SELECT NextDocNo("+dt.getDocNoSequence_ID()+")");
 					payment.setDocumentNo(DocumentNo);
 					//	End Jorge Colmenarez
 				}

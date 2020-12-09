@@ -591,7 +591,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,i.DateInvoiced,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(i.DocStatus,'') DocStatus, " + //6
@@ -611,7 +611,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(o.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),o.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,o.C_ConversionType_ID,o.AD_Client_ID,o.AD_Org_ID),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),o.C_Currency_ID,pr.C_Currency_ID,o.DateOrdered,o.C_ConversionType_ID,o.AD_Client_ID,o.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(o.DocStatus,'') DocStatus, " + //6
@@ -658,7 +658,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 					"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
 					//"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
 					"COALESCE(prl.PayAmt,0)"
-						+ "-COALESCE((SELECT SUM(currencyconvert(prl_1.PayAmt,pr_1.C_Currency_ID,i_1.C_Currency_ID,pr_1.DateDoc,i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
+						+ "-COALESCE((SELECT SUM(currencyconvert(prl_1.PayAmt,pr_1.C_Currency_ID,i_1.C_Currency_ID,i_1.DateInvoiced,i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
 							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation 
 					"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 					//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
