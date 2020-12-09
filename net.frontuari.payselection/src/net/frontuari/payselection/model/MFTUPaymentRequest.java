@@ -591,7 +591,12 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID"
+						//Add Conversion By Type of Negotiation By Argenis Rodríguez 09-12-2020
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN pr.DateDoc"
+							+ " ELSE i.DateInvoiced END"
+						//End By Argenis Rodríguez
+						+ ",i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(i.DocStatus,'') DocStatus, " + //6
@@ -601,6 +606,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 						"FTU_PaymentRequestLine prl " +
 						"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
 						"INNER JOIN C_Invoice i ON (i.C_Invoice_ID=prl.C_Invoice_ID) " +
+						"INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = i.C_BPartner_ID) " +
 						"INNER JOIN (SELECT prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.C_Invoice_ID) QtyRecords " +
 						"FROM FTU_PaymentRequestLine prl " + 
 						"GROUP BY prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID) " + 
@@ -611,7 +617,12 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(o.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),o.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,o.C_ConversionType_ID,o.AD_Client_ID,o.AD_Org_ID),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Order_ID,null),o.C_Currency_ID,pr.C_Currency_ID"
+						//Add Conversion By Negotiation Type By Argenis Rodríguez
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN pr.DateDoc"
+							+ " ELSE o.DateOrdered END"
+						//End By Argenis Rodríguez
+						+ ",o.C_ConversionType_ID,o.AD_Client_ID,o.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(o.DocStatus,'') DocStatus, " + //6
@@ -620,7 +631,8 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 						"FROM  " +
 						"FTU_PaymentRequestLine prl " +
 						"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
-						"INNER JOIN C_Order o ON (o.C_Order_ID=prl.C_Order_ID) " + 
+						"INNER JOIN C_Order o ON (o.C_Order_ID=prl.C_Order_ID) " +
+						"INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = o.C_BPartner_ID) " +
 						"INNER JOIN (SELECT prl.C_Order_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.C_Order_ID) QtyRecords " +
 						"FROM FTU_PaymentRequestLine prl " + 
 						"GROUP BY prl.C_Order_ID,prl.FTU_PaymentRequest_ID) " + 
@@ -632,7 +644,12 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 			sql.append("SELECT " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(op.DocumentNo,'') DocumentNo, " + // 2
-						"COALESCE(currencyconvert(op.OpenAmt,op.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,op.C_ConversionType_ID,pr.AD_Client_ID,pr.AD_Org_ID),0) OpenAmt, " + //3
+						"COALESCE(currencyconvert(op.OpenAmt,op.C_Currency_ID,pr.C_Currency_ID"
+						//Add Conversion By Type of Negotiation By Argenis Rodríguez
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN pr.DateDoc"
+							+ " ELSE prlg.DateDoc END"
+						//End By Argenis Rodríguez
+						+ ",op.C_ConversionType_ID,pr.AD_Client_ID,pr.AD_Org_ID),0) OpenAmt, " + //3
 						"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 						//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 						"COALESCE(op.DocStatus,'') DocStatus, " + //6
@@ -641,11 +658,15 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 						"FROM  " +
 						"FTU_PaymentRequestLine prl " +
 						"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
-						"INNER JOIN FTU_RV_OpenPayment op ON (op.Record_ID=prl.GL_Journal_ID AND op.RequestType = 'GLJ') " + 
+						"INNER JOIN FTU_RV_OpenPayment op ON (op.Record_ID=prl.GL_Journal_ID AND op.RequestType = 'GLJ') " +
 						"INNER JOIN (SELECT prl.GL_Journal_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.GL_Journal_ID) QtyRecords " +
-						"FROM FTU_PaymentRequestLine prl " + 
-						"GROUP BY prl.GL_Journal_ID,prl.FTU_PaymentRequest_ID) " + 
+						", bp_1.C_BPartner_ID, glj.DateDoc " +
+						"FROM FTU_PaymentRequestLine prl " +
+						"INNER JOIN GL_Journal glj ON (glj.GL_Journal_ID = prl.GL_Journal_ID) " +
+						"INNER JOIN C_BPartner bp_1 ON (bp_1.C_BPartner_ID = glj.C_BPartner_ID) " +
+						"GROUP BY prl.GL_Journal_ID,prl.FTU_PaymentRequest_ID, bp_1.C_BPartner_ID, glj.DateDoc) " + 
 						"prlg ON (prl.GL_Journal_ID =prlg.GL_Journal_ID AND prl.FTU_PaymentRequest_ID = prlg.FTU_PaymentRequest_ID) " +
+						"INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = prlg.C_BPartner_ID) " +
 						"WHERE pr.FTU_PaymentRequest_ID=? ");
 		if (getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_PaymentRequestManual)) //Only Check Lines 
 			sql.append("SELECT 1 " + 
@@ -658,8 +679,13 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 					"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
 					//"COALESCE(currencyconvert(PaymentRequestOpen(pr.RequestType,prl.C_Invoice_ID,null),i.C_Currency_ID,pr.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID),0) OpenAmt, " + //3
 					"COALESCE(prl.PayAmt,0)"
-						+ "-COALESCE((SELECT SUM(currencyconvert(prl_1.PayAmt,pr_1.C_Currency_ID,i_1.C_Currency_ID,pr_1.DateDoc,i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
-							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation 
+						+ "-COALESCE((SELECT SUM(currencyconvert(prl_1.PayAmt,pr_1.C_Currency_ID,pr.C_Currency_ID"
+						//Add Conversion By Type of Negotiation By Argenis Rodríguez
+								+ ", CASE WHEN COALESCE(cb_1.TypeNegotiation, 'DP') = 'DP' THEN pr_1.DateDoc"
+								+ " ELSE i_1.DateInvoiced END"
+						//End By Argenis Rodríguez
+							+ ",i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
+							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id INNER JOIN C_BPartner cb_1 ON cb_1.C_BPartner_ID = i_1.C_BPartner_ID WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation 
 					"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 					//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 					"COALESCE(i.DocStatus,'') DocStatus, " + //6
@@ -669,6 +695,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 					"FTU_PaymentRequestLine prl " +
 					"INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID=prl.FTU_PaymentRequest_ID) " +
 					"INNER JOIN C_Invoice i ON (i.C_Invoice_ID=prl.C_Invoice_ID) " +
+					"INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = i.C_BPartner_ID) " +
 					"INNER JOIN (SELECT prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID,COUNT(prl.C_Invoice_ID) QtyRecords " +
 					"FROM FTU_PaymentRequestLine prl " + 
 					"GROUP BY prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID) " + 
