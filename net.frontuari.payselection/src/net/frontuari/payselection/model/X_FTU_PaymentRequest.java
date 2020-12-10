@@ -34,7 +34,7 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20201003L;
+	private static final long serialVersionUID = 20201210L;
 
     /** Standard Constructor */
     public X_FTU_PaymentRequest (Properties ctx, int FTU_PaymentRequest_ID, String trxName)
@@ -53,7 +53,6 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 // DR
 			setDocumentNo (null);
 			setFTU_PaymentRequest_ID (0);
-			setFTU_PaymentRequest_UU (null);
 			setIsApproved (false);
 // N
 			setProcessed (false);
@@ -119,6 +118,34 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 		return ii.intValue();
 	}
 
+	public org.compiere.model.I_C_ConversionType getC_ConversionType() throws RuntimeException
+    {
+		return (org.compiere.model.I_C_ConversionType)MTable.get(getCtx(), org.compiere.model.I_C_ConversionType.Table_Name)
+			.getPO(getC_ConversionType_ID(), get_TrxName());	}
+
+	/** Set Currency Type.
+		@param C_ConversionType_ID 
+		Currency Conversion Rate Type
+	  */
+	public void setC_ConversionType_ID (int C_ConversionType_ID)
+	{
+		if (C_ConversionType_ID < 1) 
+			set_Value (COLUMNNAME_C_ConversionType_ID, null);
+		else 
+			set_Value (COLUMNNAME_C_ConversionType_ID, Integer.valueOf(C_ConversionType_ID));
+	}
+
+	/** Get Currency Type.
+		@return Currency Conversion Rate Type
+	  */
+	public int getC_ConversionType_ID () 
+	{
+		Integer ii = (Integer)get_Value(COLUMNNAME_C_ConversionType_ID);
+		if (ii == null)
+			 return 0;
+		return ii.intValue();
+	}
+
 	public org.compiere.model.I_C_Currency getC_Currency() throws RuntimeException
     {
 		return (org.compiere.model.I_C_Currency)MTable.get(getCtx(), org.compiere.model.I_C_Currency.Table_Name)
@@ -173,6 +200,23 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 		if (ii == null)
 			 return 0;
 		return ii.intValue();
+	}
+
+	/** Set Create lines from.
+		@param CreateFrom 
+		Process which will generate a new document lines based on an existing document
+	  */
+	public void setCreateFrom (String CreateFrom)
+	{
+		set_Value (COLUMNNAME_CreateFrom, CreateFrom);
+	}
+
+	/** Get Create lines from.
+		@return Process which will generate a new document lines based on an existing document
+	  */
+	public String getCreateFrom () 
+	{
+		return (String)get_Value(COLUMNNAME_CreateFrom);
 	}
 
 	/** Set Document Date.
@@ -450,13 +494,17 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 	}
 
 	/** Invoice = API */
-	public static final String REQUESTTYPE_APInvoice = "API";
-	/** Purchase Order = POO */
-	public static final String REQUESTTYPE_PurchaseOrder = "POO";
+	public static final String REQUESTTYPE_Invoice = "API";
+	/** InvoiceCxC = ARI */
+	public static final String REQUESTTYPE_InvoiceCxC = "ARI";
 	/** GL Journal = GLJ */
 	public static final String REQUESTTYPE_GLJournal = "GLJ";
+	/** Purchase Order = POO */
+	public static final String REQUESTTYPE_PurchaseOrder = "POO";
 	/** Payment Request Manual = PRM */
 	public static final String REQUESTTYPE_PaymentRequestManual = "PRM";
+	/** Assembly Record = CAR */
+	public static final String REQUESTTYPE_AssemblyRecord = "CAR";
 	/** Set Request Type.
 		@param RequestType Request Type	  */
 	public void setRequestType (String RequestType)

@@ -34,10 +34,6 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 	 * 
 	 */
 	private static final long serialVersionUID = 5771238236814875408L;
-
-
-	/** Invoice = ARI */
-	public static final String REQUESTTYPE_ARInvoice = "ARI";
 	
 	public MFTUPaymentRequest(Properties ctx, int FTU_PaymentRequest_ID, String trxName) {
 		super(ctx, FTU_PaymentRequest_ID, trxName);
@@ -292,7 +288,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 				msg = " @Line@ " + line ;
 				if (p_RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_PurchaseOrder))
 					msg += " @C_Order_ID@ ";
-				else if (p_RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice))
+				else if (p_RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_Invoice))
 					msg += " @C_Invoice_ID@ ";
 				else if (p_RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal))
 					msg += " @GL_Journal_ID@ ";
@@ -587,7 +583,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 		boolean prManual = getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_PaymentRequestManual);
 		int scale = MCurrency.getStdPrecision(getCtx(), Env.getContextAsInt(getCtx(), "$C_Currency_ID"));
 		
-		if (getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice))
+		if (getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_Invoice))
 			sql.append("SELECT  " + 
 						"COALESCE(prl.Line,0) Line, " + // 1 
 						"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2
@@ -652,7 +648,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 						"FROM  " +
 						"FTU_PaymentRequestLine prl " +
 						"WHERE prl.FTU_PaymentRequest_ID=? ");
-		if (getRequestType().equals(REQUESTTYPE_ARInvoice))
+		if (getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_InvoiceCxC))
 			sql.append("SELECT  " + 
 					"COALESCE(prl.Line,0) Line, " + // 1 
 					"COALESCE(i.DocumentNo,'') DocumentNo, " + // 2

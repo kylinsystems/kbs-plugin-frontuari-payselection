@@ -252,7 +252,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				//	BPartner
 				MBPartner bp = null;
 				//	For Invoices
-				if(pr.getRequestType().equalsIgnoreCase(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice)||pr.getRequestType().equalsIgnoreCase(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
+				if(pr.getRequestType().equalsIgnoreCase(X_FTU_PaymentRequest.REQUESTTYPE_Invoice)||pr.getRequestType().equalsIgnoreCase(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC))
 				{
 					line.setC_Invoice_ID(Record_ID);
 					MInvoice doc = new MInvoice(Env.getCtx(), Record_ID, trxName);
@@ -301,7 +301,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	{
 		String IsSOTrx = "N";
 		String RequestType = getGridTab().get_ValueAsString("RequestType");
-		if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
+		if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC))
 			IsSOTrx="Y";
 		StringBuffer where = new StringBuffer(" (EXISTS (SELECT 1 FROM C_Invoice i WHERE C_BPartner.C_BPartner_ID=i.C_BPartner_ID")
 				  .append(" AND (i.IsSOTrx='"+IsSOTrx+"' OR (i.IsSOTrx='"+IsSOTrx+"' AND i.PaymentRule='D'))")
@@ -477,7 +477,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		//
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
 		StringBuilder sql = new StringBuilder("SELECT ");
-		if(RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice))
+		if(RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_Invoice))
 		{
 			sql.append(" i.C_Invoice_ID AS Record_ID, " //	1
 					+ "o.Name AS OrgName,"	//	2
@@ -603,7 +603,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 							+ " AND il.Account_ID="+Account_ID);
 					//GROUP
 					groupBy.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code");
-		}else if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice)) {
+		}else if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC)) {
 			sql.append(" i.C_Invoice_ID AS Record_ID, " //	1
 					+ "o.Name AS OrgName,"	//	2
 					+ "i.DueDate AS DateDue,"	// 3 
@@ -670,7 +670,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			pstmt = DB.prepareStatement(sql.toString(), null);
 			pstmt.setInt(index++, C_Currency_ID);
 			pstmt.setTimestamp(index++, DateDoc);
-			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
+			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC))
 				pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, C_Currency_ID);
 			pstmt.setTimestamp(index++, DateDoc);

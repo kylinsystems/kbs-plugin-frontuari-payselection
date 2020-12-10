@@ -76,7 +76,7 @@ public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 							MFTUPaymentRequest m_FTUPaymentRequest = 
 									new MFTUPaymentRequest(getCtx(), getFTU_PaymentRequest_ID(), get_TrxName());
 							
-							if(m_FTUPaymentRequest.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice)
+							if(m_FTUPaymentRequest.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_Invoice)
 									&& getC_Invoice_ID() == 0)	{
 								throw new AdempiereException("@C_Invoice_ID@ @NotFound@");
 							}else if(m_FTUPaymentRequest.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_PurchaseOrder)
@@ -127,7 +127,7 @@ public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 		//
 		String sqlWhere = null;
 		//	Compare Request Type
-		if(requestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_APInvoice)){
+		if(requestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_Invoice)){
 			sqlWhere = "C_Invoice_ID = ?";
 		}else if(requestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal)){
 			sqlWhere = "GL_JournalLine_ID = ?";
