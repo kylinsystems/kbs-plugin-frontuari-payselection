@@ -351,8 +351,14 @@ public class FTUPaySelect extends FTUForm {
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_InvoicePaySchedule ips WHERE ips.C_InvoicePaySchedule_ID=i.C_InvoicePaySchedule_ID),i.DateInvoiced+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+							+ " ELSE i.DateInvoiced END"
+						+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue", BigDecimal.class),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+							+ " ELSE i.DateInvoiced END"
+						+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
 					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class)
 					},
@@ -415,8 +421,14 @@ public class FTUPaySelect extends FTUForm {
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_InvoicePaySchedule ips WHERE ips.C_InvoicePaySchedule_ID=i.C_InvoicePaySchedule_ID),i.DateInvoiced+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+							+ " ELSE i.DateOrdered END"
+						+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue", BigDecimal.class),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+							+ " ELSE i.DateOrdered END"
+						+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
 					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class) 
 					},
@@ -480,14 +492,21 @@ public class FTUPaySelect extends FTUForm {
 					new ColumnInfo(Msg.getMsg(ctx, "DiscountDate"), "COALESCE((SELECT discountdate from C_InvoicePaySchedule ips WHERE ips.C_InvoicePaySchedule_ID=i.C_InvoicePaySchedule_ID),i.DateInvoiced+p.DiscountDays+p.GraceDays) AS DiscountDate", Timestamp.class),
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountDue", BigDecimal.class),
-					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?,?,pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' || pr.RequestType = 'PRM' THEN ?"
+							+ " ELSE glj.DateDoc END"
+						+ ",pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountDue", BigDecimal.class),
+					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' || pr.RequestType = 'PRM' THEN ?"
+							+ " ELSE glj.DateDoc END"
+						+ ",pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
 					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
 					new ColumnInfo(Msg.translate(ctx, "AccountNo"), "bpba.AccountNo", String.class) 
 					},
 					//	FROM
 					"FTU_PaymentRequest pr "
 					+ " INNER JOIN FTU_PaymentRequestLine prl ON (prl.FTU_PaymentRequest_ID=pr.FTU_PaymentRequest_ID)"
+					+ " LEFT JOIN GL_Journal glj ON (glj.GL_Journal_ID = prl.GL_Journal_ID)"
 					+ " INNER JOIN C_DocType prdt ON (pr.C_DocType_ID=prdt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency prc ON (pr.C_Currency_ID=prc.C_Currency_ID)"
 					+ " INNER JOIN AD_Org o ON (pr.AD_Org_ID=o.AD_Org_ID)"
