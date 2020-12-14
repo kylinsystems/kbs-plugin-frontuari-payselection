@@ -202,21 +202,23 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		miniTable.setColumnClass(i++, String.class, true);   //  1-OrgName
 		miniTable.setColumnClass(i++, Timestamp.class, true);        //  2-DueDate
 		miniTable.setColumnClass(i++, String.class, true);        //  3-BPName
-		if (X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
-		{
+		
+		if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
 			miniTable.setColumnClass(i++, String.class, true);        //  4-DocTypeName
-			miniTable.setColumnClass(i++, String.class, true);        //  5-DocumentNo
-		}
+
+		miniTable.setColumnClass(i++, String.class, true);        //  5-DocumentNo
 		miniTable.setColumnClass(i++, String.class, true);        //  6-ISO_Code
 		miniTable.setColumnClass(i++, BigDecimal.class, true);	//  7-GrandTotal
 		miniTable.setColumnClass(i++, BigDecimal.class, true);	//  8-DueAmt
 		miniTable.setColumnClass(i++, BigDecimal.class, X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType));	//  9-PayAmt
-		miniTable.setColumnClass(i++, Boolean.class, false);      //  10-HasWithholding
+		
+		if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+			miniTable.setColumnClass(i++, Boolean.class, false);      //  10-HasWithholding
 		//  Table UI
 		miniTable.autoSize();
 	}
 	
-	protected Vector<String> getOISColumnNames()
+	protected Vector<String> getOISColumnNames(String requestType)
 	{
 		//  Header Info
 	    Vector<String> columnNames = new Vector<String>(9);
@@ -224,13 +226,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	    columnNames.add(Msg.translate(Env.getCtx(), "AD_Org_ID"));
 	    columnNames.add(Msg.translate(Env.getCtx(), "DueDate"));
 	    columnNames.add(Msg.translate(Env.getCtx(), "C_BPartner_ID"));
-	    columnNames.add(Msg.getElement(Env.getCtx(), "C_DocType_ID"));
+	    
+	    if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+	    	columnNames.add(Msg.getElement(Env.getCtx(), "C_DocType_ID"));
+	    
 	    columnNames.add(Msg.getElement(Env.getCtx(), "DocumentNo"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "C_Currency_ID"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "GrandTotal"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "DueAmt"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "PayAmt"));
-	    columnNames.add(Msg.getElement(Env.getCtx(), "IsTaxWithholding"));
+	    
+	    if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+	    	columnNames.add(Msg.getElement(Env.getCtx(), "IsTaxWithholding"));
 
 	    return columnNames;
 	}
@@ -245,6 +252,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		MFTUPaymentRequest pr = new MFTUPaymentRequest(Env.getCtx(), FTU_PaymentRequest_ID, trxName);
 		if (log.isLoggable(Level.CONFIG)) log.config(pr.toString());
 		//  Lines
+		boolean isDividePayment = X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(pr.getRequestType());
+		
 		for (int i = 0; i < miniTable.getRowCount(); i++)
 		{
 			if (((Boolean)miniTable.getValueAt(i, 0)).booleanValue())
@@ -254,7 +263,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				line.setAD_Org_ID(pr.getAD_Org_ID());
 				
 				//	Get Document
-				KeyNamePair pp = (KeyNamePair)miniTable.getValueAt(i, 5);   //  5-DocumentNo
+				KeyNamePair pp = (KeyNamePair)miniTable.getValueAt(i, isDividePayment ? 4 : 5);   // 4 or 5-DocumentNo
 				int Record_ID = pp.getKey();
 				//	BPartner
 				MBPartner bp = null;
@@ -294,7 +303,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				//	Set first row
 				line.setC_BP_BankAccount_ID(bpa[0].getC_BP_BankAccount_ID());
 				line.setDueDate((Timestamp)miniTable.getValueAt(i, 2));
-				line.setPayAmt((BigDecimal)miniTable.getValueAt(i, 9));
+				line.setPayAmt((BigDecimal)miniTable.getValueAt(i, isDividePayment ? 8 : 9));
 				line.setIsPrepared(false);
 				line.setProcessed(false);
 				line.saveEx(trxName);
@@ -454,6 +463,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		
 		int FTU_PaymentRequest_ID = ((Integer)getGridTab().getValue("FTU_PaymentRequest_ID")).intValue();
 		MFTUPaymentRequest paymentRequest = new MFTUPaymentRequest(Env.getCtx(), FTU_PaymentRequest_ID, null);
+		String requestType = paymentRequest.getRequestType();
 		
 		window.getWListbox().clear();
 		
@@ -462,10 +472,10 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		//  Set Model
 		ListModelTable model = new ListModelTable(data);
 		model.addTableModelListener(window);
-		window.getWListbox().setData(model, getOISColumnNames());
+		window.getWListbox().setData(model, getOISColumnNames(requestType));
 		//
 		
-		configureMiniTable(window.getWListbox(), paymentRequest.getRequestType());
+		configureMiniTable(window.getWListbox(), requestType);
 	}   //  loadOrder
 	
 	protected void loadDocuments (int C_BPartner_ID)
@@ -675,11 +685,11 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(", ao.Name AS OrgName")
 				.append(", ar.DateDoc AS DateDue")
 				.append(", bp.Name AS BPName")
+				.append(", ar.ValueNumber AS DocumentNo")
 				.append(", cc.ISO_Code")
-				.append(", arl.PayAmt")
+				.append(", arl.PayAmt AS GrandTotal")
 				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
 				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
-				.append(", 'N' AS IsTaxWithholding")
 			.append(" FROM COP_AssemblyRecordLine arl")
 			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = arl.COP_AssemblyRecord_ID)")
 			.append(" INNER JOIN AD_Org ao ON (ao.AD_Org_ID = ar.AD_Org_ID)")
@@ -736,7 +746,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			pstmt = DB.prepareStatement(sql.toString(), null);
 			pstmt.setInt(index++, C_Currency_ID);
 			pstmt.setTimestamp(index++, DateDoc);
-			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC))
+			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC)
+					&& !RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment))
 				pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, C_Currency_ID);
 			pstmt.setTimestamp(index++, DateDoc);
@@ -749,15 +760,17 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				line.add(Boolean.FALSE);           	//  0-Selection
 				line.add(rs.getString("OrgName"));  		//  1-OrgName
 				line.add(rs.getTimestamp("DateDue"));		//	2-DueDate
-				line.add(rs.getString(4));  		//  3-BPName
-				line.add(rs.getString(5));  		//  4-DocTypeName
-				KeyNamePair pp = new KeyNamePair(rs.getInt(1), rs.getString(6).trim());
+				line.add(rs.getString("BPName"));  		//  3-BPName
+				if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType))
+					line.add(rs.getString("DocTypeName"));  		//  4-DocTypeName
+				KeyNamePair pp = new KeyNamePair(rs.getInt("Record_ID"), rs.getString("DocumentNo").trim());
 				line.add(pp);                       //  5-DocumentNo
-				line.add(rs.getString(7));			// 	6-ISO_CODE
-				line.add(rs.getBigDecimal(8));		// 	7-GrandTotal
-				line.add(rs.getBigDecimal(9));		// 	8-DueAmt
-				line.add(rs.getBigDecimal(10));		// 	9-PayAmt
-				line.add(rs.getString(11).equals("Y"));		// 	10-IsTaxWithholding
+				line.add(rs.getString("ISO_Code"));			// 	6-ISO_CODE
+				line.add(rs.getBigDecimal("GrandTotal"));		// 	7-GrandTotal
+				line.add(rs.getBigDecimal("AmountDue"));		// 	8-DueAmt
+				line.add(rs.getBigDecimal("AmountPay"));		// 	9-PayAmt
+				if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType))
+					line.add(rs.getString("IsTaxWithholding").equals("Y"));		// 	10-IsTaxWithholding
 				data.add(line);
 			}
 		}
