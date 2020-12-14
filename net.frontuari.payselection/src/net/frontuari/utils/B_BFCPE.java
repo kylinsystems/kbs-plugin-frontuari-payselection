@@ -28,7 +28,7 @@ import org.compiere.util.PaymentExport;
 
 /**
  * 
- * @author Argenis Rodríguez
+ * @author Argenis Rodríguez :)
  *
  */
 public class B_BFCPE implements PaymentExport {
@@ -115,9 +115,10 @@ public class B_BFCPE implements PaymentExport {
 				.append(String.format("%8s", "").replace(" ", "0"))
 				.append(String.format("%6s", "").replace(" ", "0"))
 				.append(String.format("%6s", affiliateCode).replace(" ", "0"))
-				.append(String.format("%6s", 77).replace(" ", "0"))
+				.append(String.format("%6s", 77).replace(" ", "0")) //77
+				.append(String.format("%3s", ""))       //
 				.append(String.format("%22s", accountNo).replace(" ", "0"))
-				.append(String.format("%3s", ""))
+				.append("   ")
 				.append(String.format("%22s", "").replace(" ", "0"))
 				.append(String.format("%12s", documentNo).replace(" ", "0"))
 				.append(String.format("%10s", taxId))
@@ -154,6 +155,7 @@ public class B_BFCPE implements PaymentExport {
 				line
 					.append(Env.NL)
 					.append(String.format("%6s", seq).replace(" ", "0"))
+					.append("   ")
 					.append(bp[BPA_A_ACCOUNT])
 					.append(bp[BPA_A_IDENT_SSN])
 					.append(String.format("%5s", "").replace(" ", "0"))
@@ -165,6 +167,7 @@ public class B_BFCPE implements PaymentExport {
 					.append(String.format("%-40s", bp[BPA_A_NAME]))
 					.append("0")
 					.append("000")
+					.append(String.format("%-47s",""))
 					.append(String.format("%-58s", bp[BPA_A_EMAIL]))
 					.append("08");
 				fw.write(line.toString());
@@ -192,6 +195,8 @@ public class B_BFCPE implements PaymentExport {
 				.append(String.format("%6s", "1").replace(" ", "0"))
 				.append(String.format("%6s", String.valueOf(checks.length)).replace(" ", "0"))
 				.append(String.format("%76s", "").replace(" ", "0"));
+			fw.write(line.toString());
+			noLines++;
 			//End Total Register
 		} catch (Exception e) {
 			err.append(e.toString());

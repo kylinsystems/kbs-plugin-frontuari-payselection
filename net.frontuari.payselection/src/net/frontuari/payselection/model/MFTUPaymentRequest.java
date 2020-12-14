@@ -685,7 +685,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 								+ " ELSE i_1.DateInvoiced END"
 						//End By Argenis Rodríguez
 							+ ",i_1.C_ConversionType_ID,i_1.AD_Client_ID,i_1.AD_Org_ID)) FROM FTU_PaymentRequestLine prl_1 JOIN FTU_PaymentRequest pr_1 ON pr_1.FTU_PaymentRequest_ID=prl_1.FTU_PaymentRequest_ID"
-							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id INNER JOIN C_BPartner cb_1 ON cb_1.C_BPartner_ID = i_1.C_BPartner_ID WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation 
+							+ " JOIN C_Invoice i_1 ON prl_1.c_invoice_id=i_1.c_invoice_id INNER JOIN C_BPartner cb_1 ON cb_1.C_BPartner_ID = i_1.C_BPartner_ID WHERE pr_1.DocStatus IN ('CO','CL') AND prl_1.c_invoice_id=prl.c_invoice_id),0) OpenAmt , " + //3 delete this validation
 					"COALESCE(prl.PayAmt,0) PayAmt , " + //4
 					//"COALESCE(prl.IsExceededAmt,'N') IsExceededAmt, " + //5
 					"COALESCE(i.DocStatus,'') DocStatus, " + //6
