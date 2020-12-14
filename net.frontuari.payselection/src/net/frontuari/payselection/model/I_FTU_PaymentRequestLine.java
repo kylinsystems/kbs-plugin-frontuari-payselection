@@ -32,7 +32,7 @@ public interface I_FTU_PaymentRequestLine
     /** TableName=FTU_PaymentRequestLine */
     public static final String Table_Name = "FTU_PaymentRequestLine";
 
-    /** AD_Table_ID=1000112 */
+    /** AD_Table_ID=1000196 */
     public static final int Table_ID = MTable.getTable_ID(Table_Name);
 
     KeyNamePair Model = new KeyNamePair(Table_ID, Table_Name);
@@ -109,6 +109,15 @@ public interface I_FTU_PaymentRequestLine
 
 	public org.compiere.model.I_C_Invoice getC_Invoice() throws RuntimeException;
 
+    /** Column name COP_AssemblyRecordLine_ID */
+    public static final String COLUMNNAME_COP_AssemblyRecordLine_ID = "COP_AssemblyRecordLine_ID";
+
+	/** Set COP_AssemblyRecordLine_ID	  */
+	public void setCOP_AssemblyRecordLine_ID (int COP_AssemblyRecordLine_ID);
+
+	/** Get COP_AssemblyRecordLine_ID	  */
+	public int getCOP_AssemblyRecordLine_ID();
+
     /** Column name C_Order_ID */
     public static final String COLUMNNAME_C_Order_ID = "C_Order_ID";
 
@@ -139,6 +148,19 @@ public interface I_FTU_PaymentRequestLine
 	  * User who created this records
 	  */
 	public int getCreatedBy();
+
+    /** Column name Description */
+    public static final String COLUMNNAME_Description = "Description";
+
+	/** Set Description.
+	  * Optional short description of the record
+	  */
+	public void setDescription (String Description);
+
+	/** Get Description.
+	  * Optional short description of the record
+	  */
+	public String getDescription();
 
     /** Column name DueDate */
     public static final String COLUMNNAME_DueDate = "DueDate";
@@ -181,6 +203,21 @@ public interface I_FTU_PaymentRequestLine
 
 	/** Get Payment Request Line_UU	  */
 	public String getFTU_PaymentRequestLine_UU();
+
+    /** Column name GL_Journal_ID */
+    public static final String COLUMNNAME_GL_Journal_ID = "GL_Journal_ID";
+
+	/** Set Journal.
+	  * General Ledger Journal
+	  */
+	public void setGL_Journal_ID (int GL_Journal_ID);
+
+	/** Get Journal.
+	  * General Ledger Journal
+	  */
+	public int getGL_Journal_ID();
+
+	public org.compiere.model.I_GL_Journal getGL_Journal() throws RuntimeException;
 
     /** Column name GL_JournalLine_ID */
     public static final String COLUMNNAME_GL_JournalLine_ID = "GL_JournalLine_ID";

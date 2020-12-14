@@ -33,7 +33,7 @@ public class X_FTU_PaymentRequestLine extends PO implements I_FTU_PaymentRequest
 	/**
 	 *
 	 */
-	private static final long serialVersionUID = 20201003L;
+	private static final long serialVersionUID = 20201210L;
 
     /** Standard Constructor */
     public X_FTU_PaymentRequestLine (Properties ctx, int FTU_PaymentRequestLine_ID, String trxName)
@@ -41,9 +41,10 @@ public class X_FTU_PaymentRequestLine extends PO implements I_FTU_PaymentRequest
       super (ctx, FTU_PaymentRequestLine_ID, trxName);
       /** if (FTU_PaymentRequestLine_ID == 0)
         {
+			setC_BPartner_ID (0);
+			setC_BP_BankAccount_ID (0);
 			setFTU_PaymentRequest_ID (0);
 			setFTU_PaymentRequestLine_ID (0);
-			setFTU_PaymentRequestLine_UU (null);
         } */
     }
 
@@ -159,6 +160,26 @@ public class X_FTU_PaymentRequestLine extends PO implements I_FTU_PaymentRequest
 		return ii.intValue();
 	}
 
+	/** Set COP_AssemblyRecordLine_ID.
+		@param COP_AssemblyRecordLine_ID COP_AssemblyRecordLine_ID	  */
+	public void setCOP_AssemblyRecordLine_ID (int COP_AssemblyRecordLine_ID)
+	{
+		if (COP_AssemblyRecordLine_ID < 1) 
+			set_ValueNoCheck (COLUMNNAME_COP_AssemblyRecordLine_ID, null);
+		else 
+			set_ValueNoCheck (COLUMNNAME_COP_AssemblyRecordLine_ID, Integer.valueOf(COP_AssemblyRecordLine_ID));
+	}
+
+	/** Get COP_AssemblyRecordLine_ID.
+		@return COP_AssemblyRecordLine_ID	  */
+	public int getCOP_AssemblyRecordLine_ID () 
+	{
+		Integer ii = (Integer)get_Value(COLUMNNAME_COP_AssemblyRecordLine_ID);
+		if (ii == null)
+			 return 0;
+		return ii.intValue();
+	}
+
 	public org.compiere.model.I_C_Order getC_Order() throws RuntimeException
     {
 		return (org.compiere.model.I_C_Order)MTable.get(getCtx(), org.compiere.model.I_C_Order.Table_Name)
@@ -185,6 +206,23 @@ public class X_FTU_PaymentRequestLine extends PO implements I_FTU_PaymentRequest
 		if (ii == null)
 			 return 0;
 		return ii.intValue();
+	}
+
+	/** Set Description.
+		@param Description 
+		Optional short description of the record
+	  */
+	public void setDescription (String Description)
+	{
+		set_Value (COLUMNNAME_Description, Description);
+	}
+
+	/** Get Description.
+		@return Optional short description of the record
+	  */
+	public String getDescription () 
+	{
+		return (String)get_Value(COLUMNNAME_Description);
 	}
 
 	/** Set Due Date.
@@ -261,6 +299,34 @@ public class X_FTU_PaymentRequestLine extends PO implements I_FTU_PaymentRequest
 	public String getFTU_PaymentRequestLine_UU () 
 	{
 		return (String)get_Value(COLUMNNAME_FTU_PaymentRequestLine_UU);
+	}
+
+	public org.compiere.model.I_GL_Journal getGL_Journal() throws RuntimeException
+    {
+		return (org.compiere.model.I_GL_Journal)MTable.get(getCtx(), org.compiere.model.I_GL_Journal.Table_Name)
+			.getPO(getGL_Journal_ID(), get_TrxName());	}
+
+	/** Set Journal.
+		@param GL_Journal_ID 
+		General Ledger Journal
+	  */
+	public void setGL_Journal_ID (int GL_Journal_ID)
+	{
+		if (GL_Journal_ID < 1) 
+			set_ValueNoCheck (COLUMNNAME_GL_Journal_ID, null);
+		else 
+			set_ValueNoCheck (COLUMNNAME_GL_Journal_ID, Integer.valueOf(GL_Journal_ID));
+	}
+
+	/** Get Journal.
+		@return General Ledger Journal
+	  */
+	public int getGL_Journal_ID () 
+	{
+		Integer ii = (Integer)get_Value(COLUMNNAME_GL_Journal_ID);
+		if (ii == null)
+			 return 0;
+		return ii.intValue();
 	}
 
 	public org.compiere.model.I_GL_JournalLine getGL_JournalLine() throws RuntimeException

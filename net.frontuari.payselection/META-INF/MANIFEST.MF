@@ -19,7 +19,8 @@ Require-Bundle: org.apache.commons.lang3,
  zkplus,
  zul,
  zweb,
- com.itextpdf;bundle-version="5.5.13"
+ com.itextpdf;bundle-version="5.5.13",
+ com.coposa.shareholders;bundle-version="7.1.0"
 Import-Package: org.osgi.service.event
 Service-Component: OSGI-INF/ModelFactory.xml,OSGI-INF/EventFactory.xml,OSGI-INF/CalloutFactory.xml,OSGI-INF/ProcessFactory.xml,OSGI-INF/PaymentExporterFactory.xml,OSGI-INF/FormFactory.xml,
  OSGI-INF/CreateFromFactory.xml

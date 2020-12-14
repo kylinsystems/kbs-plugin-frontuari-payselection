@@ -55,6 +55,9 @@ import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zul.Space;
 
+import com.coposa.shareholders.model.MCOPAssemblyRecordLine;
+import com.coposa.shareholders.model.X_COP_AssemblyRecordLine;
+
 import net.frontuari.payselection.model.MFTUPaymentRequest;
 import net.frontuari.payselection.model.MFTUPaymentRequestLine;
 import net.frontuari.payselection.model.X_FTU_PaymentRequest;
@@ -192,19 +195,23 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 
 	}
 
-	protected void configureMiniTable (IMiniTable miniTable)
+	protected void configureMiniTable (IMiniTable miniTable, String requestType)
 	{
-		miniTable.setColumnClass(0, Boolean.class, false);      //  0-Selection
-		miniTable.setColumnClass(1, String.class, true);   //  1-OrgName
-		miniTable.setColumnClass(2, Timestamp.class, true);        //  2-DueDate
-		miniTable.setColumnClass(3, String.class, true);        //  3-BPName
-		miniTable.setColumnClass(4, String.class, true);        //  4-DocTypeName
-		miniTable.setColumnClass(5, String.class, true);        //  5-DocumentNo
-		miniTable.setColumnClass(6, String.class, true);        //  6-ISO_Code
-		miniTable.setColumnClass(7, BigDecimal.class, true);	//  7-GrandTotal
-		miniTable.setColumnClass(8, BigDecimal.class, true);	//  8-DueAmt
-		miniTable.setColumnClass(9, BigDecimal.class, false);	//  9-PayAmt
-		miniTable.setColumnClass(10, Boolean.class, false);      //  10-HasWithholding
+		int i = 0;
+		miniTable.setColumnClass(i++, Boolean.class, false);      //  0-Selection
+		miniTable.setColumnClass(i++, String.class, true);   //  1-OrgName
+		miniTable.setColumnClass(i++, Timestamp.class, true);        //  2-DueDate
+		miniTable.setColumnClass(i++, String.class, true);        //  3-BPName
+		if (X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+		{
+			miniTable.setColumnClass(i++, String.class, true);        //  4-DocTypeName
+			miniTable.setColumnClass(i++, String.class, true);        //  5-DocumentNo
+		}
+		miniTable.setColumnClass(i++, String.class, true);        //  6-ISO_Code
+		miniTable.setColumnClass(i++, BigDecimal.class, true);	//  7-GrandTotal
+		miniTable.setColumnClass(i++, BigDecimal.class, true);	//  8-DueAmt
+		miniTable.setColumnClass(i++, BigDecimal.class, X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType));	//  9-PayAmt
+		miniTable.setColumnClass(i++, Boolean.class, false);      //  10-HasWithholding
 		//  Table UI
 		miniTable.autoSize();
 	}
@@ -270,6 +277,12 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					line.set_ValueOfColumn("GL_Journal_ID", Record_ID);
 					MJournal GJorurnal = new MJournal(Env.getCtx(), Record_ID, trxName);
 					bp = new MBPartner(Env.getCtx(), GJorurnal.get_ValueAsInt("C_BPartner_ID"), trxName);
+				}
+				else if (pr.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment))
+				{
+					line.set_ValueOfColumn(X_COP_AssemblyRecordLine.COLUMNNAME_COP_AssemblyRecordLine_ID, Record_ID);
+					MCOPAssemblyRecordLine assemblyRecordLine = new MCOPAssemblyRecordLine(line.getCtx(), Record_ID, trxName);
+					bp = new MBPartner(line.getCtx(), assemblyRecordLine.getC_BPartner_ID(), trxName);
 				}
 				else
 					continue;
@@ -438,6 +451,10 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	 */
 	protected void loadTableOIS (Vector<?> data)
 	{
+		
+		int FTU_PaymentRequest_ID = ((Integer)getGridTab().getValue("FTU_PaymentRequest_ID")).intValue();
+		MFTUPaymentRequest paymentRequest = new MFTUPaymentRequest(Env.getCtx(), FTU_PaymentRequest_ID, null);
+		
 		window.getWListbox().clear();
 		
 		//  Remove previous listeners
@@ -448,7 +465,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		window.getWListbox().setData(model, getOISColumnNames());
 		//
 		
-		configureMiniTable(window.getWListbox());
+		configureMiniTable(window.getWListbox(), paymentRequest.getRequestType());
 	}   //  loadOrder
 	
 	protected void loadDocuments (int C_BPartner_ID)
@@ -652,6 +669,55 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
+		} else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment))
+		{
+			sql.append(" arl.COP_AssemblyRecordLine_ID AS Record_ID")
+				.append(", ao.Name AS OrgName")
+				.append(", ar.DateDoc AS DateDue")
+				.append(", bp.Name AS BPName")
+				.append(", cc.ISO_Code")
+				.append(", arl.PayAmt")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
+				.append(", 'N' AS IsTaxWithholding")
+			.append(" FROM COP_AssemblyRecordLine arl")
+			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = arl.COP_AssemblyRecord_ID)")
+			.append(" INNER JOIN AD_Org ao ON (ao.AD_Org_ID = ar.AD_Org_ID)")
+			.append(" INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = arl.C_BPartner_ID)")
+			.append(" INNER JOIN C_Currency cc ON (cc.C_Currency_ID = ar.C_Currency_ID)")
+			.append(" LEFT JOIN (")
+				.append("SELECT ")
+					.append("arl_1.COP_AssemblyRecordLine_ID")
+					.append(", SUM(COALESCE(currencyconvert(psl_1.PayAmt, cba.C_Currency_ID, ar_1.C_Currency_ID, ps_1.PayDate, ar_1.C_ConversionType_ID"
+							+ ", ar_1.AD_Client_ID, ar_1.AD_Org_ID), 0)) AS PayAmt")
+				.append(" FROM C_PaySelectionLine psl_1")
+				.append(" INNER JOIN FTU_PaymentRequestLine prl_1 ON (prl_1.FTU_PaymentRequestLine_ID = psl_1.FTU_PaymentRequestLine_ID)")
+				.append(" INNER JOIN COP_AssemblyRecordLine arl_1 ON (arl_1.COP_AssemblyRecordLine_ID = prl_1.COP_AssemblyRecordLine_ID)")
+				.append(" INNER JOIN COP_AssemblyRecord ar_1 ON (ar_1.COP_AssemblyRecord_ID = arl_1.COP_AssemblyRecord_ID)")
+				.append(" INNER JOIN FTU_PaymentRequest pr_1 ON (pr_1.FTU_PaymentRequest_ID = prl_1.FTU_PaymentRequest_ID)")
+				.append(" INNER JOIN C_PaySelection ps_1 ON (ps_1.C_PaySelection_ID = psl_1.C_PaySelection_ID)")
+				.append(" INNER JOIN C_BankAccount cba ON (cba.C_BankAccount_ID = ps_1.C_BankAccount_ID)")
+				.append(" INNER JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID)")
+				.append(" WHERE psc_1.C_Payment_ID IS NULL AND psl_1.IsActive = 'Y'")
+				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
+			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = arl.COP_AssemblyRecordLine_ID)")
+			.append(" LEFT JOIN (")
+				.append("SELECT")
+					.append(" arl_1.COP_AssemblyRecordLine_ID")
+					.append(", SUM(COALESCE(currencyconvert(prl_1.PayAmt, pr_1.C_Currency_ID, ar_1.C_Currency_ID, pr_1.DateDoc, ar_1.C_ConversionType_ID, ar_1.AD_Client_ID, ar_1.AD_Org_ID), 0)) AS PayAmt")
+				.append(" FROM FTU_PaymentRequest pr_1")
+				.append(" INNER JOIN FTU_PaymentRequestLine prl_1 ON (prl_1.FTU_PaymentRequest_ID = pr_1.FTU_PaymentRequest_ID)")
+				.append(" INNER JOIN COP_AssemblyRecordLine arl_1 ON (arl_1.COP_AssemblyRecordLine_ID = prl_1.COP_AssemblyRecordLine_ID)")
+				.append(" INNER JOIN COP_AssemblyRecord ar_1 ON (ar_1.COP_AssemblyRecord_ID = arl_1.COP_AssemblyRecord_ID)")
+				.append(" WHERE pr_1.DocStatus NOT IN ('VO', 'RE')"
+						+ " AND NOT EXISTS(SELECT 1 FROM C_PaySelectionLine psl_1 WHERE psl_1.FTU_PaymentRequestLine_ID = prl_1.FTU_PaymentRequestLine_ID"
+						+ " AND psl_1.IsActive = 'Y')")
+				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
+			.append(") prl ON (prl.COP_AssemblyRecordLine_ID = arl.COP_AssemblyRecordLine_ID)")
+			.append(" WHERE arl.IsPaid = 'N'")
+			.append(" AND (FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID) - COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0)) > 0")
+			.append(" AND ar.DocStatus IN ('CO', 'CL')")
+			.append(" AND ar.AD_Client_ID = ? AND ar.AD_Org_ID = ?");
 		}
 		if(C_BPartner_ID > 0)
 		{
@@ -681,8 +747,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			{
 				Vector<Object> line = new Vector<Object>(9);
 				line.add(Boolean.FALSE);           	//  0-Selection
-				line.add(rs.getString(2));  		//  1-OrgName
-				line.add(rs.getTimestamp(3));		//	2-DueDate
+				line.add(rs.getString("OrgName"));  		//  1-OrgName
+				line.add(rs.getTimestamp("DateDue"));		//	2-DueDate
 				line.add(rs.getString(4));  		//  3-BPName
 				line.add(rs.getString(5));  		//  4-DocTypeName
 				KeyNamePair pp = new KeyNamePair(rs.getInt(1), rs.getString(6).trim());

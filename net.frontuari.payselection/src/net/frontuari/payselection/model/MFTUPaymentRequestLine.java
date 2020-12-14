@@ -11,6 +11,8 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.DB;
 
+import com.coposa.shareholders.model.MCOPAssemblyRecordLine;
+
 public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 	/**
 	 * 
@@ -62,6 +64,10 @@ public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 			MJournalLine jl = new MJournalLine(getCtx(), getGL_JournalLine_ID(), get_TrxName());
 			if(jl.get_ValueAsInt("C_BPartner_ID")!=C_BPartner_ID)
 				setC_BPartner_ID(jl.get_ValueAsInt("C_BPartner_ID"));
+		} else if (getCOP_AssemblyRecordLine_ID() != 0) {
+			MCOPAssemblyRecordLine asRecordLine = new MCOPAssemblyRecordLine(getCtx(), getCOP_AssemblyRecordLine_ID(), get_TrxName());
+			if (C_BPartner_ID != asRecordLine.getC_BPartner_ID())
+				setC_BPartner_ID(asRecordLine.getC_BPartner_ID());
 		}
 		//End Carlos Parada
 		if(newRecord){
@@ -86,7 +92,9 @@ public class MFTUPaymentRequestLine extends X_FTU_PaymentRequestLine {
 									&& get_ValueAsInt("GL_Journal_ID")<= 0)	{
 									//&& getGL_JournalLine_ID()== 0)	{
 								throw new AdempiereException("@GL_JournalLine_ID@ @NotFound@");
-							}
+							} else if (m_FTUPaymentRequest.getRequestType().equals(X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment)
+									&& getCOP_AssemblyRecordLine_ID()<=0)
+								throw new AdempiereException("@COP_AssemblyRecordLine_ID@ @NotFound@");
 						}
 
 		//	Return

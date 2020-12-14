@@ -503,8 +503,8 @@ public class X_FTU_PaymentRequest extends PO implements I_FTU_PaymentRequest, I_
 	public static final String REQUESTTYPE_PurchaseOrder = "POO";
 	/** Payment Request Manual = PRM */
 	public static final String REQUESTTYPE_PaymentRequestManual = "PRM";
-	/** Assembly Record = CAR */
-	public static final String REQUESTTYPE_AssemblyRecord = "CAR";
+	/** Dividend Payment = CAR */
+	public static final String REQUESTTYPE_DividendPayment = "CAR";
 	/** Set Request Type.
 		@param RequestType Request Type	  */
 	public void setRequestType (String RequestType)
