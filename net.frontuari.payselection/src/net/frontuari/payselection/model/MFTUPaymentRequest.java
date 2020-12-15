@@ -572,6 +572,7 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 	/**
 	 * 
 	 * @author <a href="mailto:jcolmenarez@frontuari.net">Jorge Colmenarez</a> 2020-10-03, 12:32
+	 * @author <a href="mailto:arodriguez@frontuari.net">Argenis Rodríguez</a> 2020-12-14
 	 * @return String
 	 */
 	private String validateDocumentLines(){
@@ -670,6 +671,30 @@ public class MFTUPaymentRequest extends X_FTU_PaymentRequest implements DocActio
 					"GROUP BY prl.C_Invoice_ID,prl.FTU_PaymentRequest_ID) " + 
 					"prlg ON (prl.C_Invoice_ID =prlg.C_Invoice_ID AND prl.FTU_PaymentRequest_ID = prlg.FTU_PaymentRequest_ID) " +
 					"WHERE pr.FTU_PaymentRequest_ID=? ");
+		//Add Support for Request Type Dividend Payment By Argenis Rodríguez 14-12-2020
+		if (X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(getRequestType()))
+			sql.append("SELECT ")
+				.append(" COALESCE(prl.Line, 0)") //1
+				.append(", COALESCE(ar.ValueNumber, '') AS DocumentNo") //2
+				.append(", COALESCE(currencyconvert(paymentRequestOpenByAssemblyRecordLine(prl.COP_AssemblyRecordLine_ID), ar.C_Currency_ID, pr.C_Currency_ID, pr.DateDoc, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS OpenAmt") //3
+				.append(", COALESCE(prl.PayAmt, 0) AS PayAmt") //4
+				.append(", COALESCE(ar.DocStatus, '') AS DocStatus") //5
+				.append(", COALESCE(prlg.QtyRecords, 0) AS QtyRecords") //6
+				.append(", COALESCE(prl.IsPrepared, 'N') AS IsPrepared") //7
+			.append(" FROM FTU_PaymentRequestLine prl")
+			.append(" INNER JOIN FTU_PaymentRequest pr ON (pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID)")
+			.append(" INNER JOIN COP_AssemblyRecordLine arl ON (arl.COP_AssemblyRecordLine_ID = prl.COP_AssemblyRecordLine_ID)")
+			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = arl.COP_AssemblyRecord_ID)")
+			.append(" INNER JOIN (")
+				.append("SELECT ")
+					.append(" prl_1.FTU_PaymentRequest_ID")
+					.append(", prl_1.COP_AssemblyRecordLine_ID")
+					.append(", COUNT(prl_1.FTU_PaymentRequestLine_ID) AS QtyRecords")
+				.append(" FROM FTU_PaymentRequestLine prl_1")
+				.append(" GROUP BY prl_1.FTU_PaymentRequest_ID, prl_1.COP_AssemblyRecordLine_ID")
+			.append(") prlg ON (prlg.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID AND prl.COP_AssemblyRecordLine_ID = prlg.COP_AssemblyRecordLine_ID)")
+			.append(" WHERE prl.FTU_PaymentRequest_ID = ?");
+		//End By Argenis Rodríguez
 		
 		try{
 			ps = DB.prepareStatement(sql.toString(), get_TrxName());

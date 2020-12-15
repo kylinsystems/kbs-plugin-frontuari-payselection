@@ -38,7 +38,7 @@ BEGIN
 	v_Min := 1/10^v_Precision;
 	
 	SELECT
-		COALESCE(SUM(currencyconvert(fp.payamt, fp2.c_currency_id, v_Currency_ID, null, fp2.datedoc
+		COALESCE(SUM(currencyconvert(fp.payamt, fp2.c_currency_id, v_Currency_ID, fp2.datedoc, null
 			, fp.ad_client_id, fp.ad_org_id)), 0)
 		INTO
 		v_PayAmtRequest
