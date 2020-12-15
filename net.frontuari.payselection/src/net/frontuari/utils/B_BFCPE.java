@@ -192,6 +192,8 @@ public class B_BFCPE implements PaymentExport {
 				.append(String.format("%6s", "1").replace(" ", "0"))
 				.append(String.format("%6s", String.valueOf(checks.length)).replace(" ", "0"))
 				.append(String.format("%76s", "").replace(" ", "0"));
+			fw.write(line.toString());
+			noLines++;
 			//End Total Register
 		} catch (Exception e) {
 			err.append(e.toString());
@@ -368,13 +370,17 @@ public class B_BFCPE implements PaymentExport {
 	 */
 	public static String replaceSpecialCharacters(String input) {
 	    // Original string to be replaced.
-	    String original = "áàäéèëíìïóòöúùuñÁÀÄÉÈËÍÌÏÓÒÖÚÙÜÑçÇ";
+		String [] original = {"á", "à", "ä", "é", "è", "ë", "í", "ì", "ï", "ó", "ò", "ö", "ú"
+				, "ù", "u", "ñ", "Á", "À", "Ä", "É", "È", "Ë", "Í", "Ì", "Ï", "Ó", "Ò", "Ö"
+				, "Ú", "Ù", "Ü", "Ñ", "ç", "Ç", ".", ","};
 	    // ASCII character string that will replace the original.
-	    String ascii = "aaaeeeiiiooouuunAAAEEEIIIOOOUUUNcC";
+		String [] ascii = {"a", "a", "a", "e", "e", "e", "i", "i", "i", "o", "o", "o", "u"
+				, "u", "u", "n", "A", "A", "A", "E", "E", "E", "I", "I", "I", "O", "O", "O"
+				, "U", "U", "U", "N", "c", "C", "", ""};
 	    String output = input;
-	    for (int i=0; i<original.length(); i++) {
+	    for (int i=0; i<original.length; i++) {
 	        // Reemplazamos los caracteres especiales.
-	        output = output.replace(original.charAt(i), ascii.charAt(i));
+	        output = output.replace(original[i], ascii[i]);
 	    }//for i
 	    return output;
 	}//replaceSpecialCharacters
