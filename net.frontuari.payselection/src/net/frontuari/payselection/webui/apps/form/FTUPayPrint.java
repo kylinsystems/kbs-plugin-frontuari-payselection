@@ -557,13 +557,11 @@ public class FTUPayPrint extends FTUForm {
 			check.setIsPrinted(true);
 			check.setProcessed(true);
 			check.saveEx();
+			trx.commit();
 		} catch (Exception e) {
 			trx.rollback();
-			trx.close();
-			trx = null;
 			throw new AdempiereException(e);
 		} finally {
-			trx.commit();
 			trx.close();
 		}
 	}	//	confirmPrint

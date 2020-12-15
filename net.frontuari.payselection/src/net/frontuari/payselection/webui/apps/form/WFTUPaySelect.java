@@ -85,6 +85,8 @@ import org.zkoss.zul.Separator;
 import org.zkoss.zul.South;
 import org.zkoss.zul.Space;
 
+import net.frontuari.payselection.model.X_FTU_PaymentRequest;
+
 /**
  *  Create Manual Payments From (AP) Invoices, (AR) Credit Memos, (PO) Purchased Order with Prepayment.
  *  Allows user to select Invoices or Order Purchased for payment.
@@ -120,6 +122,8 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	private Checkbox onlyPositiveBalance = new Checkbox();
 	private Checkbox prePayment = new Checkbox();
 	private Checkbox Manual = new Checkbox();
+	/** Check Is Dividend Payment */
+	private Checkbox DividendPayment = new Checkbox();
 	private Label labelBPartner = new Label();
 	//private Listbox fieldBPartner = ListboxFactory.newDropdownListbox();
 	private WSearchEditor bpartnerSearch = null;
@@ -228,6 +232,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		Manual.setText(Msg.translate(Env.getCtx(), "IsManual"));
 		Manual.addActionListener(this);
 		Manual.setEnabled(false);
+		//Add Check Dividend Payment By Argenis Rodríguez 15-12-2020
+		DividendPayment.setText(Msg.translate(Env.getCtx(), "IsDividendPayment"));
+		DividendPayment.addActionListener(this);
+		DividendPayment.setEnabled(false);
+		//End By Argenis Rodríguez
 		onlyDue.setText(Msg.getMsg(Env.getCtx(), "OnlyDue"));
 		dataStatus.setText(" ");
 		dataStatus.setPre(true);
@@ -324,6 +333,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		row.appendChild(onlyDue);
 		row.appendCellChild(prePayment);
 		row.appendCellChild(Manual);
+		row.appendCellChild(DividendPayment);
 		row.appendChild(new Space());
 		
 		row = rows.newRow();
@@ -419,7 +429,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		}
 		//	End
 		
-		prepareTable(miniTable,false,false);
+		prepareTable(miniTable,false,false,false);
 		
 		miniTable.getModel().addTableModelListener(this);		
 		fieldPayDate.setValue(new Timestamp(System.currentTimeMillis()));
@@ -464,11 +474,11 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		boolean prepayment = (m_Doctype.get_ValueAsString("RequestType").equals("POO") ? true : false);
 		boolean manual = (m_Doctype.get_ValueAsString("RequestType").equals("PRM")||m_Doctype.get_ValueAsString("RequestType").equals("GLJ")? true : false);
-		
+		boolean isDividendPayment = X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(m_Doctype.get_ValueAsString("RequestType"));
 		
 		prePayment.setChecked(prepayment);
 		Manual.setChecked(manual);
-		
+		DividendPayment.setChecked(isDividendPayment);		
 	}   //  verifyPrePayment
 
 	/**
@@ -500,12 +510,12 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
 		
 		//	prepareMiniTable
-		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected());
+		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected(),DividendPayment.isSelected());
 		//	loadTableInfo
 		//loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
-		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(),m_Doctype, m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);
+		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(),DividendPayment.isSelected(),m_Doctype, m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);
 		
-		calculateSelection();
+		calculateSelection(DividendPayment.isSelected());
 		if (ClientInfo.maxHeight(ClientInfo.MEDIUM_HEIGHT-1))
 		{
 			mainLayout.getNorth().setOpen(false);
@@ -550,7 +560,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		//	else if (e.getTarget() == fieldBPartner || e.getTarget() == bRefresh || e.getTarget() == fieldDtype
 		else if (e.getTarget() == bRefresh //|| e.getTarget() == fieldDtype
 				|| e.getTarget() == fieldPaymentRule || e.getTarget() == onlyDue || e.getTarget() == onlyPositiveBalance
-				 || e.getTarget() == prePayment)
+				 || e.getTarget() == prePayment || e.getTarget() == DividendPayment)
 			loadTableInfo();
 
 		else if (DialogEvents.ON_WINDOW_CLOSE.equals(e.getName())) {
@@ -610,13 +620,14 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	 */
 	public void tableChanged(WTableModelEvent e)
 	{
+		boolean isDividendPayment = DividendPayment.isSelected();
 		if (e.getColumn() == 0)
-			calculateSelection();
-		else if(e.getColumn() == 12)
+			calculateSelection(isDividendPayment);
+		else if(isDividendPayment && e.getColumn() == 11 || !isDividendPayment && e.getColumn() == 12)
 		{
 			int currRow = e.getLastRow();
-			BigDecimal dueAmt = (BigDecimal) miniTable.getValueAt(currRow, 11); // Column DueAmt
-			BigDecimal payAmt = (BigDecimal) miniTable.getValueAt(currRow, 12); // Column PayAmt
+			BigDecimal dueAmt = (BigDecimal) miniTable.getValueAt(currRow, isDividendPayment ? 10 : 11); // Column DueAmt
+			BigDecimal payAmt = (BigDecimal) miniTable.getValueAt(currRow, isDividendPayment ? 11 : 12); // Column PayAmt
 			if(dueAmt == null)
 				dueAmt = BigDecimal.ZERO;
 			if(payAmt == null)
@@ -625,10 +636,10 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 			{
 				String msg = Msg.translate(Env.getCtx(),"AmountPay")+":["+payAmt+"] > "+Msg.translate(Env.getCtx(),"AmountDue")+":["+dueAmt+"]";
 				FDialog.error(m_WindowNo, form, "Error", msg);
-				miniTable.setValueAt(dueAmt, currRow, 12); // Set Column PayAmt with DueAmt
+				miniTable.setValueAt(dueAmt, currRow, isDividendPayment ? 11 : 12); // Set Column PayAmt with DueAmt
 			}
 			else
-				calculateSelection();
+				calculateSelection(isDividendPayment);
 		}
 	}   //  valueChanged
 
@@ -636,9 +647,9 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 	 *  Calculate selected rows.
 	 *  - add up selected rows
 	 */
-	public void calculateSelection()
+	public void calculateSelection(boolean isDividendPayment)
 	{
-		dataStatus.setText(calculateSelection(miniTable));
+		dataStatus.setText(calculateSelection(miniTable, isDividendPayment));
 		//
 		bGenerate.setEnabled(m_noSelected != 0);
 	}   //  calculateSelection
@@ -651,7 +662,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		if (miniTable.getRowCount() == 0)
 			return;
 		miniTable.setSelectedIndices(new int[]{0});
-		calculateSelection();
+		calculateSelection(DividendPayment.isSelected());
 		if (m_noSelected == 0)
 			return;
 		
@@ -664,7 +675,8 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		
 		String msg = generatePaySelect(miniTable, (ValueNamePair) fieldPaymentRule.getSelectedItem().getValue(), 
 				new Timestamp(fieldPayDate.getComponent().getValue().getTime()), 
-				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),Manual.isSelected(),C_DocType_ID);
+				(BankInfo)fieldBankAccount.getSelectedItem().getValue(),prePayment.isSelected(),Manual.isSelected()
+				, DividendPayment.isSelected(),C_DocType_ID);
 		
 		if(msg != null && msg.length() > 0)		
 		{

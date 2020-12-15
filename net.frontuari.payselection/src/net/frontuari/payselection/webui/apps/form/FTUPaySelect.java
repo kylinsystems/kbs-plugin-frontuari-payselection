@@ -310,7 +310,7 @@ public class FTUPaySelect extends FTUForm {
 		return data;
 	}
 	
-	public void prepareTable(IMiniTable miniTable,boolean isPrePayment,boolean isManual)
+	public void prepareTable(IMiniTable miniTable,boolean isPrePayment,boolean isManual,boolean isDividendPayment)
 	{
 		Properties ctx = Env.getCtx();
 		/**  prepare MiniTable
@@ -331,7 +331,7 @@ public class FTUPaySelect extends FTUForm {
 		ORDER BY 2,3
 		 */
 
-		if(!isPrePayment && !isManual)
+		if(!isPrePayment && !isManual && !isDividendPayment)
 		{
 			m_sql = miniTable.prepareTable(new ColumnInfo[] {
 					//  0..8
@@ -520,6 +520,55 @@ public class FTUPaySelect extends FTUForm {
 					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType IN ('PRM','GLJ')",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
+		//Add Support for Generate PaySelection with Type Request Dividend Payment by Argenis Rodríguez 15-12-2020
+		else if (isDividendPayment)
+		{
+			m_sql = miniTable.prepareTable(new ColumnInfo[] {
+					new ColumnInfo(" ", "arl.COP_AssemblyRecordLine_ID", IDColumn.class) //0
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AD_Org_ID"), "o.Name", String.class) //1
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_DocType_ID"), "dt.Name", String.class) //2
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "FTU_PaymentRequest_ID"), "pr.DocumentNo", KeyNamePair.class, true, false, "prl.FTU_PaymentRequestLine_ID") //3
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "DueDate"), "prl.DueDate AS DateDue", Timestamp.class, true, true, null) //4
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_BPartner_ID"), "bp.Name", KeyNamePair.class, true, false, "bp.C_BPartner_ID") //5
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "DocumentNo"), "ar.ValueNumber AS DocumentNo", String.class) //6
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_Currency_ID"), "c.ISO_Code", KeyNamePair.class, true, false, "c.C_Currency_ID") //7
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "PayAmt"), "arl.PayAmt AS GrandTotal", BigDecimal.class) //8
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_CurrencyTo_ID"), "cc.ISO_Code", KeyNamePair.class, true, false, "cc.C_Currency_ID") //9
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountDue"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, pr.C_ConversionType_ID, pr.AD_Client_ID, pr.AD_Org_ID), 0) AS AmountDue", BigDecimal.class) //10
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountPay"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, pr.C_ConversionType_ID, pr.AD_Client_ID, pr.AD_Org_ID), 0) AS AmountPay", BigDecimal.class, false) //11
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_Bank_ID"), "bank.Name", String.class) //12
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AccountNo"), "bpa.AccountNo", String.class) //13
+			},
+			"FTU_PaymentRequest pr"
+			+ " INNER JOIN FTU_PaymentRequestLine prl ON (prl.FTU_PaymentRequest_ID = pr.FTU_PaymentRequest_ID)"
+			+ " INNER JOIN COP_AssemblyRecordLine arl ON (arl.COP_AssemblyRecordLine_ID = prl.COP_AssemblyRecordLine_ID)"
+			+ " INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = arl.COP_AssemblyRecord_ID)"
+			+ " INNER JOIN C_DocType dt ON (dt.C_DocType_ID = pr.C_DocType_ID)"
+			+ " INNER JOIN C_Currency cc ON (cc.C_Currency_ID = pr.C_Currency_ID)"
+			+ " INNER JOIN AD_Org o ON (arl.AD_Org_ID = o.AD_Org_ID)"
+			+ " INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = prl.C_BPartner_ID)"
+			+ " INNER JOIN C_BP_BankAccount bpa ON (bpa.C_BP_BankAccount_ID = prl.C_BP_BankAccount_ID)"
+			+ " INNER JOIN C_Bank bank ON (bank.C_Bank_ID = bpa.C_Bank_ID)"
+			+ " INNER JOIN C_Currency c ON (c.C_Currency_ID = ar.C_Currency_ID)"
+			+ " LEFT JOIN ("
+				+ "SELECT prl_1.FTU_PaymentRequestLine_ID"
+				+ ", SUM(COALESCE(currencyconvert(psl_1.PayAmt, cbacct.C_Currency_ID, pr_1.C_Currency_ID, ps_1.PayDate, ar_1.C_ConversionType_ID, ar_1.AD_Client_ID, ar_1.AD_Org_ID), 0)) AS PayAmt"
+				+ " FROM C_PaySelectionLine psl_1"
+				+ " INNER JOIN FTU_PaymentRequestLine prl_1 ON (prl_1.FTU_PaymentRequestLine_ID = psl_1.FTU_PaymentRequestLine_ID)"
+				+ " INNER JOIN FTU_PaymentRequest pr_1 ON (pr_1.FTU_PaymentRequest_ID = prl_1.FTU_PaymentRequest_ID)"
+				+ " INNER JOIN C_PaySelection ps_1 ON (ps_1.C_PaySelection_ID = psl_1.C_PaySelection_ID)"
+				+ " INNER JOIN C_BankAccount cbacct ON (cbacct.C_BankAccount_ID = ps_1.C_BankAccount_ID)"
+				+ " INNER JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID AND psc_1.C_Payment_ID IS NOT NULL)"
+				+ " INNER JOIN COP_AssemblyRecordLine arl_1 ON (arl_1.COP_AssemblyRecordLine_ID = prl_1.COP_AssemblyRecordLine_ID)"
+				+ " INNER JOIN COP_AssemblyRecord ar_1 ON (ar_1.COP_AssemblyRecord_ID = arl_1.COP_AssemblyRecord_ID)"
+				+ " GROUP BY prl_1.FTU_PaymentRequestLine_ID"
+			+ ") psl ON (psl.FTU_PaymentRequestLine_ID = prl.FTU_PaymentRequestLine_ID)"
+			,
+			"(prl.PayAmt - COALESCE(psl.PayAmt, 0)) > 0 "
+			+ "AND pr.DocStatus = 'CO' AND ar.DocStatus IN ('CO', 'CL')"
+			, true, "pr");
+		}
+		//End By Argenis Rodríguez
 	}   //  dynInit
 
 	/**
@@ -571,7 +620,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Query and create TableInfo
 	 */
 	public void loadTableInfo(BankInfo bi, Timestamp payDate, ValueNamePair paymentRule, boolean onlyDue, 
-			boolean onlyPositiveBalance, boolean prePayment, boolean manual,MDocType Doctype, int C_BPartner_ID, int FTU_PaymentRequest_ID, KeyNamePair org, IMiniTable miniTable)
+			boolean onlyPositiveBalance, boolean prePayment, boolean manual, boolean isDividendPayment,MDocType Doctype, int C_BPartner_ID, int FTU_PaymentRequest_ID, KeyNamePair org, IMiniTable miniTable)
 	{
 		log.config("");
 		//  not yet initialized
@@ -688,7 +737,7 @@ public class FTUPaySelect extends FTUForm {
 			//pstmt.setTimestamp(index++, payDate);		//	AmountPay
 			pstmt.setInt(index++, bi.C_Currency_ID);//	AmountPay
 			pstmt.setTimestamp(index++, payDate);
-			if(!manual)
+			if(!manual && !isDividendPayment)
 				pstmt.setString(index++, isSOTrx);			//	IsSOTrx
 			//pstmt.setInt(index++, m_AD_Client_ID);		//	Client
 			if (onlyDue)
@@ -700,7 +749,7 @@ public class FTUPaySelect extends FTUForm {
 			if (ad_org_id != 0)                    //Organization
 				pstmt.setInt(index++, ad_org_id );
 			if (onlyPositiveBalance) {
-				if(!manual)
+				if(!manual && !isDividendPayment)
 					pstmt.setString(index++, isSOTrx);			//	IsSOTrx
 				//pstmt.setInt(index++, m_AD_Client_ID);		//	Client
 				if (onlyDue)
@@ -736,7 +785,7 @@ public class FTUPaySelect extends FTUForm {
 	 *  Calculate selected rows.
 	 *  - add up selected rows
 	 */
-	public String calculateSelection(IMiniTable miniTable)
+	public String calculateSelection(IMiniTable miniTable, boolean isDividendPayment)
 	{
 		m_noSelected = 0;
 		BigDecimal invoiceAmt = Env.ZERO;
@@ -747,7 +796,7 @@ public class FTUPaySelect extends FTUForm {
 			IDColumn id = (IDColumn)miniTable.getValueAt(i, 0);
 			if (id.isSelected())
 			{
-				BigDecimal amt = (BigDecimal)miniTable.getValueAt(i, 12);
+				BigDecimal amt = (BigDecimal)miniTable.getValueAt(i, isDividendPayment ? 11 : 12);
 				if (amt != null)
 					invoiceAmt = invoiceAmt.add(amt);
 				m_noSelected++;
@@ -768,7 +817,8 @@ public class FTUPaySelect extends FTUForm {
 	/**
 	 *  Generate PaySelection
 	 */
-	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment, boolean isManual, int C_DocType_ID)
+	public String generatePaySelect(IMiniTable miniTable, ValueNamePair paymentRule, Timestamp payDate, BankInfo bi, boolean isPrepayment
+			, boolean isManual, boolean isDividendPayment, int C_DocType_ID)
 	{
 		log.info("");
 
@@ -778,7 +828,7 @@ public class FTUPaySelect extends FTUForm {
 			trxName = Trx.createTrxName("PaySelect");
 			trx = Trx.get(trxName, true);
 			trx.setDisplayName(getClass().getName()+"_generatePaySelect");
-
+			
 			String PaymentRule = paymentRule.getValue();
 			//  Create Header
 			m_ps = new MPaySelection(Env.getCtx(), 0, trxName);
@@ -812,10 +862,10 @@ public class FTUPaySelect extends FTUForm {
 					line += 10;
 					MPaySelectionLine psl = new MPaySelectionLine (m_ps, line, PaymentRule);
 					int C_Invoice_ID = id.getRecord_ID().intValue();
-					BigDecimal OpenAmt = (BigDecimal)miniTable.getValueAt(i, 11);
+					BigDecimal OpenAmt = (BigDecimal)miniTable.getValueAt(i, isDividendPayment ? 10 : 11);
 					BigDecimal DiscountAmt = BigDecimal.ZERO;//(BigDecimal)miniTable.getValueAt(i, 8);
 					BigDecimal WriteOffAmt = BigDecimal.ZERO;//(BigDecimal)miniTable.getValueAt(i, 9);
-					BigDecimal PayAmt = (BigDecimal)miniTable.getValueAt(i, 12);
+					BigDecimal PayAmt = (BigDecimal)miniTable.getValueAt(i, isDividendPayment ? 11 : 12);
 					
 					//	Get KeyNamePair Objects
 					KeyNamePair pp = (KeyNamePair)miniTable.getValueAt(i, 3);   //  3-PaymentRequestLine
@@ -829,7 +879,7 @@ public class FTUPaySelect extends FTUForm {
 					//
 					psl.set_ValueOfColumn("C_BPartner_ID", bp_ID);
 					psl.set_ValueOfColumn("FTU_PaymentRequestLine_ID", prl_ID);
-					if(!isPrepayment && !isManual)
+					if(!isPrepayment && !isManual && !isDividendPayment)
 					{
 						psl.setInvoice(C_Invoice_ID, isSOTrx,
 								OpenAmt, PayAmt, DiscountAmt, WriteOffAmt);	
