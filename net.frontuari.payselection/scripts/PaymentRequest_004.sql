@@ -1,8 +1,8 @@
-CREATE OR REPLACE FUNCTION FTU_AssemblyRecordOpen(p_COP_AssemblyRecordLine_ID NUMERIC)
-RETURNS NUMERIC
-LANGUAGE plpgsql
-STABLE
-AS $$
+CREATE OR REPLACE FUNCTION adempiere.ftu_assemblyrecordopen(p_cop_assemblyrecordline_id numeric)
+ RETURNS numeric
+ LANGUAGE plpgsql
+ STABLE
+AS $function$
 DECLARE
 	v_Currency_ID NUMERIC(10) := 0;
 	v_TotalOpenAmt NUMERIC := 0;
@@ -11,20 +11,29 @@ DECLARE
 	v_Min NUMERIC := 0;
 	ar RECORD;
 BEGIN
-	SELECT
-		ca2.c_currency_id 
-		, ca.payamt 
-		, cc.stdprecision 
-		INTO
-		v_Currency_ID
-		, v_TotalOpenAmt
-		, v_Precision
-	FROM cop_assemblyrecordline ca 
-	INNER JOIN cop_assemblyrecord ca2 ON ca2.cop_assemblyrecord_id = ca.cop_assemblyrecord_id 
-	INNER JOIN c_currency cc ON cc.c_currency_id = ca2.c_currency_id 
-	WHERE ca.cop_assemblyrecordline_id = p_COP_AssemblyRecordLine_ID;
+	BEGIN
+		SELECT
+			ca2.c_currency_id 
+			, ca.payamt 
+			, COALESCE(cc.stdprecision, 2)
+			INTO
+			v_Currency_ID
+			, v_TotalOpenAmt
+			, v_Precision
+		FROM cop_assemblyrecordline ca 
+		INNER JOIN cop_assemblyrecord ca2 ON ca2.cop_assemblyrecord_id = ca.cop_assemblyrecord_id
+		INNER JOIN c_currency cc ON cc.c_currency_id = ca2.c_currency_id 
+		WHERE ca.cop_assemblyrecordline_id = p_COP_AssemblyRecordLine_ID;
+	EXCEPTION
+		WHEN OTHERS THEN
+				RAISE NOTICE 'Assembly Record Open %', SQLERRM;
+			RETURN NULL;
+	END;
 	
+	v_Precision := COALESCE(v_Precision, 2);
+
 	v_Min := 1/10^v_Precision;
+	RAISE NOTICE 'El mínimo es %', v_Min;
 	
 	FOR ar IN
 		SELECT
@@ -43,7 +52,7 @@ BEGIN
 		v_PaidAmt := v_PaidAmt + ar.convertedAmt;
 	END LOOP;
 	
-	v_TotalOpenAmt := v_TotalOpenAmt - v_PaidAmt;
+	v_TotalOpenAmt := v_TotalOpenAmt - COALESCE(v_PaidAmt,0);
 	--IGNORE ROUNDING
 	
 	IF (v_TotalOpenAmt > -v_Min AND v_TotalOpenAmt < v_Min) THEN
@@ -53,4 +62,5 @@ BEGIN
 	--Round to Currency Precision
 	v_TotalOpenAmt = ROUND(COALESCE(v_TotalOpenAmt, 0), v_Precision);
 	RETURN v_TotalOpenAmt;
-END;$$
+END;$function$
+;
