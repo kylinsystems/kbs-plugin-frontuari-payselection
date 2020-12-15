@@ -192,6 +192,8 @@ public class B_BFCPE implements PaymentExport {
 				.append(String.format("%6s", "1").replace(" ", "0"))
 				.append(String.format("%6s", String.valueOf(checks.length)).replace(" ", "0"))
 				.append(String.format("%76s", "").replace(" ", "0"));
+			fw.write(line.toString());
+			noLines++;
 			//End Total Register
 		} catch (Exception e) {
 			err.append(e.toString());
