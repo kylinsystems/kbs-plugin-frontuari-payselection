@@ -709,13 +709,11 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			int index = 1;
 			pstmt = DB.prepareStatement(sql.toString(), null);
 			pstmt.setInt(index++, C_Currency_ID);
-			if(RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal))
-				pstmt.setTimestamp(index++, DateDoc);
+			pstmt.setTimestamp(index++, DateDoc);
 			if (!RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal) && !RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice))
 				pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, C_Currency_ID);
-			if(RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal))
-				pstmt.setTimestamp(index++, DateDoc);
+			pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, Env.getAD_Client_ID(Env.getCtx()));
 			pstmt.setInt(index++, AD_Org_ID);
 			rs = pstmt.executeQuery();
