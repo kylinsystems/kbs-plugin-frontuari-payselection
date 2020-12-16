@@ -534,8 +534,8 @@ public class FTUPaySelect extends FTUForm {
 					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_Currency_ID"), "c.ISO_Code", KeyNamePair.class, true, false, "c.C_Currency_ID") //7
 					, new ColumnInfo(Msg.translate(Env.getCtx(), "PayAmt"), "arl.PayAmt AS GrandTotal", BigDecimal.class) //8
 					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_CurrencyTo_ID"), "cc.ISO_Code", KeyNamePair.class, true, false, "cc.C_Currency_ID") //9
-					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountDue"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, pr.C_ConversionType_ID, pr.AD_Client_ID, pr.AD_Org_ID), 0) AS AmountDue", BigDecimal.class) //10
-					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountPay"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, pr.C_ConversionType_ID, pr.AD_Client_ID, pr.AD_Org_ID), 0) AS AmountPay", BigDecimal.class, false) //11
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountDue"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue", BigDecimal.class) //10
+					, new ColumnInfo(Msg.translate(Env.getCtx(), "AmountPay"), "COALESCE(currencyconvert(prl.PayAmt - COALESCE(psl.PayAmt, 0), pr.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay", BigDecimal.class, false) //11
 					, new ColumnInfo(Msg.translate(Env.getCtx(), "C_Bank_ID"), "bank.Name", String.class) //12
 					, new ColumnInfo(Msg.translate(Env.getCtx(), "AccountNo"), "bpa.AccountNo", String.class) //13
 			},
