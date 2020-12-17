@@ -19,11 +19,15 @@ public class CalloutPaymentRequest extends FTUCallout {
 			int C_DocType_ID = Optional.ofNullable((Integer) getTab().getValue(MFTUPaymentRequest.COLUMNNAME_C_DocType_ID))
 					.orElse(0);
 			MDocType dt = new MDocType(getCtx(), C_DocType_ID, null);
+			String requestType = dt.get_ValueAsString(MFTUPaymentRequest.COLUMNNAME_RequestType);
 			
 			if(dt.get_ID() == 0)
 				return null;
 			
-			setValue(MFTUPaymentRequest.COLUMNNAME_RequestType, dt.get_ValueAsString("RequestType"));
+			setValue(MFTUPaymentRequest.COLUMNNAME_RequestType, requestType);
+			
+			if (MFTUPaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+				setValue(MFTUPaymentRequest.COLUMNNAME_C_Charge_ID, dt.get_ValueAsInt(MFTUPaymentRequest.COLUMNNAME_C_Charge_ID));
 		}
 		return null;
 	}
