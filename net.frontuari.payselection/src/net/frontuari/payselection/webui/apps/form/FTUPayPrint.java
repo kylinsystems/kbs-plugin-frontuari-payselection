@@ -499,6 +499,7 @@ public class FTUPayPrint extends FTUForm {
 				if (check.getQty() == 1 && psls != null && psls.length == 1)
 				{
 					MPaySelectionLine psl = psls[0];
+					MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
 					if (s_log.isLoggable(Level.FINE)) s_log.fine("Map to Invoice " + psl);
 					//
 					if(psl.get_ValueAsInt("C_Order_ID") > 0)
@@ -513,12 +514,15 @@ public class FTUPayPrint extends FTUForm {
 					//	Manual
 					else
 					{
-						MFTUPaymentRequestLine prl = new MFTUPaymentRequestLine(Env.getCtx(), psl.get_ValueAsInt("FTU_PaymentRequestLine_ID") , trxName);
 						if(prl.getFTU_PaymentRequest().getC_Charge_ID() > 0)
 							payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
 						else
 							payment.setIsPrepayment(true);
 					}
+					//	Added By Jorge Colmenarez, 2020-12-18 15:42
+					//	Support for add Org Trx
+					payment.setAD_OrgTrx_ID(prl.getFTU_PaymentRequest().getAD_Org_ID());
+					//	End Jorge Colmenarez
 					payment.setDiscountAmt (psl.getDiscountAmt());
 					payment.setWriteOffAmt (psl.getWriteOffAmt());
 					BigDecimal overUnder = psl.getOpenAmt().subtract(psl.getPayAmt())
@@ -540,10 +544,15 @@ public class FTUPayPrint extends FTUForm {
 							payment.setC_Charge_ID(prl.getFTU_PaymentRequest().getC_Charge_ID());
 						else
 							payment.setIsPrepayment(true);
+						//	Added By Jorge Colmenarez, 2020-12-18 15:42
+						//	Support for add Org Trx
+						payment.setAD_OrgTrx_ID(prl.getFTU_PaymentRequest().getAD_Org_ID());
+						//	End Jorge Colmenarez
 					}
 					payment.setWriteOffAmt(Env.ZERO);
 					payment.setDiscountAmt(Env.ZERO);
 				}
+				
 				payment.saveEx();
 				//
 				int C_Payment_ID = payment.get_ID();
