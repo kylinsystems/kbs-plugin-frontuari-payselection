@@ -135,9 +135,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	
 	protected void zkInit() throws Exception
 	{
+		int FTU_PaymentRequest_ID = ((Integer)getGridTab().getValue("FTU_PaymentRequest_ID")).intValue();
+		
+		MFTUPaymentRequest paymentRequest = new MFTUPaymentRequest(Env.getCtx(), FTU_PaymentRequest_ID, null);
+		String requestType = paymentRequest.getRequestType();
+		
 		bPartnerLabel.setText(Msg.getElement(Env.getCtx(), "C_BPartner_ID"));
-		labelDtype.setText(Msg.translate(Env.getCtx(), "C_DocType_ID"));
-		fieldDtype.addActionListener(this);
+		
+		if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+		{
+			labelDtype.setText(Msg.translate(Env.getCtx(), "C_DocType_ID"));
+			fieldDtype.addActionListener(this);
+		}
 		
     	Panel parameterPanel = window.getParameterPanel();
 		
@@ -152,9 +161,12 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		
 		Rows rows = (Rows) parameterStdLayout.newRows();
 		Row row = rows.newRow();
-		//	Add Document Type by RequestType
-		row.appendChild(labelDtype.rightAlign());
-		row.appendChild(fieldDtype);
+		if (!X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+		{
+//			Add Document Type by RequestType
+			row.appendChild(labelDtype.rightAlign());
+			row.appendChild(fieldDtype);
+		}
 		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
 		{			
 			row.appendChild(new Space());
@@ -492,11 +504,12 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	{
 		if (log.isLoggable(Level.CONFIG)) log.config("C_BPartner_ID=" + C_BPartner_ID);
 		
-		KeyNamePair docType = (KeyNamePair) fieldDtype.getSelectedItem().getValue();
-		
-		MDocType dt = new MDocType(Env.getCtx(), docType.getKey(), null);
-
 		String RequestType = getGridTab().get_ValueAsString("RequestType");
+		
+		KeyNamePair docType = !X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType) ? (KeyNamePair) fieldDtype.getSelectedItem().getValue()
+				: null;
+		
+		MDocType dt = docType != null ? new MDocType(Env.getCtx(), docType.getKey(), null) : null;
 		int C_Currency_ID = (Integer)getGridTab().getValue("C_Currency_ID");
 		int AD_Org_ID = (Integer)getGridTab().getValue("AD_Org_ID");
 		Timestamp DateDoc = (Timestamp) getGridTab().getValue("DateDoc");
@@ -681,19 +694,19 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		} else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment))
 		{
-			sql.append(" arl.COP_AssemblyRecordLine_ID AS Record_ID")
+			sql.append(" i.COP_AssemblyRecordLine_ID AS Record_ID")
 				.append(", ao.Name AS OrgName")
 				.append(", ar.DateDoc AS DateDue")
 				.append(", bp.Name AS BPName")
 				.append(", ar.ValueNumber AS DocumentNo")
 				.append(", cc.ISO_Code")
-				.append(", arl.PayAmt AS GrandTotal")
-				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
-				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
-			.append(" FROM COP_AssemblyRecordLine arl")
-			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = arl.COP_AssemblyRecord_ID)")
+				.append(", i.PayAmt AS GrandTotal")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
+			.append(" FROM COP_AssemblyRecordLine i")
+			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = i.COP_AssemblyRecord_ID)")
 			.append(" INNER JOIN AD_Org ao ON (ao.AD_Org_ID = ar.AD_Org_ID)")
-			.append(" INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = arl.C_BPartner_ID)")
+			.append(" INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = i.C_BPartner_ID)")
 			.append(" INNER JOIN C_Currency cc ON (cc.C_Currency_ID = ar.C_Currency_ID)")
 			.append(" LEFT JOIN (")
 				.append("SELECT ")
@@ -710,7 +723,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(" INNER JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID)")
 				.append(" WHERE psc_1.C_Payment_ID IS NULL AND psl_1.IsActive = 'Y'")
 				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
-			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = arl.COP_AssemblyRecordLine_ID)")
+			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")
 			.append(" LEFT JOIN (")
 				.append("SELECT")
 					.append(" arl_1.COP_AssemblyRecordLine_ID")
@@ -723,9 +736,9 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 						+ " AND NOT EXISTS(SELECT 1 FROM C_PaySelectionLine psl_1 WHERE psl_1.FTU_PaymentRequestLine_ID = prl_1.FTU_PaymentRequestLine_ID"
 						+ " AND psl_1.IsActive = 'Y')")
 				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
-			.append(") prl ON (prl.COP_AssemblyRecordLine_ID = arl.COP_AssemblyRecordLine_ID)")
-			.append(" WHERE arl.IsPaid = 'N'")
-			.append(" AND (FTU_AssemblyRecordOpen(arl.COP_AssemblyRecordLine_ID) - COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0)) > 0")
+			.append(") prl ON (prl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")
+			.append(" WHERE i.IsPaid = 'N'")
+			.append(" AND (FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID) - COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0)) > 0")
 			.append(" AND ar.DocStatus IN ('CO', 'CL')")
 			.append(" AND ar.AD_Client_ID = ? AND ar.AD_Org_ID = ?");
 		}
