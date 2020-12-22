@@ -487,18 +487,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?"
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?"
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay, "	// 10
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay, "	// 10
 					+ "COALESCE((SELECT MAX('Y') FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
 					//	FROM
@@ -541,18 +541,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID),i.C_Currency_ID, ?"
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) ,i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateOrdered END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?"
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)AS AmountDue, "	//	9
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateOrdered END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	//	10
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
 					+ "'N' AS IsTaxWithholding")
 					//	FROM
 					.append(" FROM FTU_Order_v i"
@@ -646,18 +646,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
 					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11*/
-					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?"
+					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?"
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
 						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
-					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
+					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
 					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
