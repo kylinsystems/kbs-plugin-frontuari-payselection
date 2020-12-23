@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.Vector;
 import java.util.logging.Level;
 
@@ -55,6 +56,7 @@ import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zul.Space;
 
+import com.coposa.shareholders.model.MCOPAssemblyRecord;
 import com.coposa.shareholders.model.MCOPAssemblyRecordLine;
 import com.coposa.shareholders.model.X_COP_AssemblyRecordLine;
 
@@ -99,6 +101,16 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	protected WEditor bPartnerField;
 	private Label labelDtype = new Label();
 	private Listbox fieldDtype = ListboxFactory.newDropdownListbox();
+	
+	//Add Fields for Request Type Dividend Payment By Argenis Rodríguez
+	private Label labelCOPAssemblyRecord = new Label();
+	private WSearchEditor COPAssemblyRecordField;
+	//End By Argenis Rodríguez
+	
+	//Add References UU
+	private static final String COP_AssemblyRecord_UU	= "a47a0e27-4391-425a-9fb0-34e5a415dfe4";
+	private static final String FTU_BPartner_UU			= "97e6b4c5-5d61-40a1-a899-bce09374a54e";
+	//End By Argenis Rodríguez
 
 	private Grid parameterStdLayout;
 
@@ -106,6 +118,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	
 	//	Support for change BPartner Lookup for Search Field
 	private int	m_C_BPartner_ID = 0;
+	private int m_COP_AssemblyRecord_ID = 0;
 
 	@Override
 	public Object getWindow() {
@@ -121,10 +134,18 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	{
 		log.config("");
 		
+		String requestType = getGridTab().get_ValueAsString(MFTUPaymentRequest.COLUMNNAME_RequestType);
+		
 		window.setTitle(Msg.getElement(Env.getCtx(), "CreateFrom"));	
 		
 		initBPartner(true);
 		bPartnerField.addValueChangeListener(this);
+		
+		if (MFTUPaymentRequest.REQUESTTYPE_DividendPayment.equals(requestType))
+		{
+			initCOPAssemblyRecord();
+			COPAssemblyRecordField.addValueChangeListener(this);
+		}
 		
 		ArrayList<KeyNamePair> docTypeData = getDocTypeData();
 		for(KeyNamePair pp : docTypeData)
@@ -132,6 +153,23 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		
 		return true;
 	}   //  dynInit
+	
+	/**
+	 * @author Argenis Rodríguez
+	 * @throws Exception 
+	 */
+	protected void initCOPAssemblyRecord() throws Exception {
+		
+		int AD_Column_ID = MColumn.getColumn_ID(MCOPAssemblyRecord.Table_Name, MCOPAssemblyRecord.COLUMNNAME_COP_AssemblyRecord_ID);
+		int AD_Ref_Value_ID = getReferenceByUUID(COP_AssemblyRecord_UU);
+		
+		MLookup lookup = MLookupFactory.get(Env.getCtx(), p_WindowNo, AD_Column_ID
+				, DisplayType.Search, Env.getLanguage(Env.getCtx())
+				, MCOPAssemblyRecord.COLUMNNAME_COP_AssemblyRecord_ID
+				, AD_Ref_Value_ID, false, null);
+		
+		COPAssemblyRecordField = new WSearchEditor(MCOPAssemblyRecord.COLUMNNAME_COP_AssemblyRecord_ID, false, false, true, lookup);
+	}
 	
 	protected void zkInit() throws Exception
 	{
@@ -147,6 +185,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			labelDtype.setText(Msg.translate(Env.getCtx(), "C_DocType_ID"));
 			fieldDtype.addActionListener(this);
 		}
+		else
+			labelCOPAssemblyRecord.setText(Msg.translate(Env.getCtx(), MCOPAssemblyRecord.COLUMNNAME_COP_AssemblyRecord_ID));
 		
     	Panel parameterPanel = window.getParameterPanel();
 		
@@ -166,6 +206,12 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 //			Add Document Type by RequestType
 			row.appendChild(labelDtype.rightAlign());
 			row.appendChild(fieldDtype);
+		}
+		else
+		{
+			//Add Assembly Record Field if Request Type is Dividend Payment
+			row.appendChild(labelCOPAssemblyRecord.rightAlign());
+			row.appendChild(COPAssemblyRecordField.getComponent());
 		}
 		if (ClientInfo.maxWidth(ClientInfo.MEDIUM_WIDTH-1))
 		{			
@@ -337,6 +383,9 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		String RequestType = getGridTab().get_ValueAsString("RequestType");
 		if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_InvoiceCxC))
 			IsSOTrx="Y";
+		
+		boolean isDividendPayment = MFTUPaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType);
+		
 		StringBuffer where = new StringBuffer(" (EXISTS (SELECT 1 FROM C_Invoice i WHERE C_BPartner.C_BPartner_ID=i.C_BPartner_ID")
 				  .append(" AND (i.IsSOTrx='"+IsSOTrx+"' OR (i.IsSOTrx='"+IsSOTrx+"' AND i.PaymentRule='D'))")
 				  .append(" AND i.IsPaid<>'Y') OR EXISTS (SELECT 1 FROM C_Order o WHERE C_BPartner.C_BPartner_ID=o.C_BPartner_ID ")
@@ -347,12 +396,25 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		int AD_Column_ID = MColumn.getColumn_ID(MFTUPaymentRequestLine.Table_Name, MFTUPaymentRequestLine.COLUMNNAME_C_BPartner_ID) ;        //  C_Invoice.C_BPartner_ID
 		MLookup lookup = MLookupFactory.get (Env.getCtx(), p_WindowNo, AD_Column_ID, 
 				DisplayType.Search,Env.getLanguage(Env.getCtx()), "C_BPartner_ID"
-				, 0, false, where.toString());
+				, isDividendPayment ? getReferenceByUUID(FTU_BPartner_UU) : 0, false
+						, isDividendPayment ? "" : where.toString());
 		bPartnerField = new WSearchEditor ("C_BPartner_ID", true, false, true, lookup);
 		//
 		//int C_BPartner_ID = Env.getContextAsInt(Env.getCtx(), p_WindowNo, "C_BPartner_ID");
 		//bPartnerField.setValue(Integer.valueOf(C_BPartner_ID));
 	}   //  initBPartner
+	
+	/**
+	 * @author Argenis Rodríguez
+	 * @param AD_Reference_UU
+	 * @return
+	 */
+	private static int getReferenceByUUID(String AD_Reference_UU) {
+		
+		return DB.getSQLValue(null
+				, "SELECT AD_Reference_ID FROM AD_Reference WHERE AD_Reference_UU = ?"
+				, AD_Reference_UU);
+	}
 	
 	private void hideEmptyRow(org.zkoss.zul.Rows rows) {
 		for(Component a : rows.getChildren()) {
@@ -454,6 +516,13 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			m_C_BPartner_ID = C_BPartner_ID;
 			loadDocuments (C_BPartner_ID);
 		}
+		else if (e.getPropertyName().equals(MCOPAssemblyRecord.COLUMNNAME_COP_AssemblyRecord_ID))
+		{
+			m_COP_AssemblyRecord_ID = Optional.ofNullable((Integer) e.getNewValue())
+					.orElse(0);
+			
+			loadDocuments(m_C_BPartner_ID);
+		}
 		window.tableChanged(null);
 	}   //  vetoableChange
 	
@@ -527,8 +596,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay, "	// 10
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay, "	// 10
 					+ "COALESCE((SELECT MAX('Y') FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
 					//	FROM
@@ -544,7 +613,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
-					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "
 					+ " LEFT JOIN (SELECT prl.C_Invoice_ID,"
@@ -571,8 +640,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	//	10
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
 					+ "'N' AS IsTaxWithholding")
 					//	FROM
 					.append(" FROM FTU_Order_v i"
@@ -587,7 +656,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Order i ON psl.C_Order_ID = i.C_Order_ID "
-					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.C_Order_ID) psl ON (i.C_Order_ID=psl.C_Order_ID) "
 					+ " LEFT JOIN (SELECT prl.C_Order_ID,"
@@ -656,8 +725,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
 					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11*/
-					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountDue, "	//	9
-					+ "currencyConvert(vw.withholdingAmt,i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
+					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
 					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
@@ -676,7 +745,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
-					+ " INNER JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
 					+ " WHERE psl.IsActive='Y' "
 					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "
 					+ " LEFT JOIN (SELECT prl.C_Invoice_ID,"
@@ -698,7 +767,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(", ao.Name AS OrgName")
 				.append(", ar.DateDoc AS DateDue")
 				.append(", bp.Name AS BPName")
-				.append(", ar.ValueNumber AS DocumentNo")
+				.append(", ar.Value AS DocumentNo")
 				.append(", cc.ISO_Code")
 				.append(", i.PayAmt AS GrandTotal")
 				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
@@ -720,8 +789,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(" INNER JOIN FTU_PaymentRequest pr_1 ON (pr_1.FTU_PaymentRequest_ID = prl_1.FTU_PaymentRequest_ID)")
 				.append(" INNER JOIN C_PaySelection ps_1 ON (ps_1.C_PaySelection_ID = psl_1.C_PaySelection_ID)")
 				.append(" INNER JOIN C_BankAccount cba ON (cba.C_BankAccount_ID = ps_1.C_BankAccount_ID)")
-				.append(" INNER JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID)")
-				.append(" WHERE psc_1.C_Payment_ID IS NULL AND psl_1.IsActive = 'Y'")
+				.append(" LEFT JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID)")
+				.append(" WHERE /*psc_1.C_Payment_ID IS NULL AND*/ psl_1.IsActive = 'Y'")
 				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
 			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")
 			.append(" LEFT JOIN (")
@@ -744,12 +813,14 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		}
 		if(C_BPartner_ID > 0)
 		{
-			sql.append(" AND i.C_BPartner_ID = "+C_BPartner_ID);
+			sql.append(" AND i.C_BPartner_ID = ?");
 		}
 		if(dt!=null && dt.get_ID()>0)
 		{
-			sql.append(" AND i.C_DocType_ID = "+dt.get_ID());
+			sql.append(" AND i.C_DocType_ID = ?");
 		}
+		if (X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType) && m_COP_AssemblyRecord_ID > 0)
+			sql.append(" AND i.COP_AssemblyRecord_ID = ?");
 		sql.append(groupBy);
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
@@ -766,6 +837,14 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, Env.getAD_Client_ID(Env.getCtx()));
 			pstmt.setInt(index++, AD_Org_ID);
+			
+			if (C_BPartner_ID > 0)
+				pstmt.setInt(index++, C_BPartner_ID);
+			if (dt != null && dt.get_ID() > 0)
+				pstmt.setInt(index++, dt.get_ID());
+			if (X_FTU_PaymentRequest.REQUESTTYPE_DividendPayment.equals(RequestType) && m_COP_AssemblyRecord_ID > 0)
+				pstmt.setInt(index++, m_COP_AssemblyRecord_ID);
+			
 			rs = pstmt.executeQuery();
 			while (rs.next())
 			{
