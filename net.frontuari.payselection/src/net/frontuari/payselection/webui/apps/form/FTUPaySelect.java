@@ -710,7 +710,7 @@ public class FTUPaySelect extends FTUForm {
 			//pstmt.setTimestamp(index++, payDate);		//	AmountPay
 			pstmt.setInt(index++, bi.C_Currency_ID);//	AmountPay
 			pstmt.setTimestamp(index++, payDate);
-			if(!manual)
+			if(!manual) 
 				pstmt.setString(index++, isSOTrx);			//	IsSOTrx
 			pstmt.setTimestamp(index++, payDate);			// Pay Date
 			//pstmt.setInt(index++, m_AD_Client_ID);		//	Client
