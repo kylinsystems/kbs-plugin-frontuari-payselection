@@ -419,7 +419,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		}
 		//	End
 		
-		prepareTable(miniTable,false,false);
+		prepareTable(miniTable,false,false, new Timestamp(System.currentTimeMillis()));
 		
 		miniTable.getModel().addTableModelListener(this);		
 		fieldPayDate.setValue(new Timestamp(System.currentTimeMillis()));
@@ -500,7 +500,7 @@ public class WFTUPaySelect extends FTUPaySelect implements ValueChangeListener, 
 		KeyNamePair org = (KeyNamePair) organizationPick.getSelectedItem().getValue();
 		
 		//	prepareMiniTable
-		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected());
+		prepareTable(miniTable,prePayment.isSelected(),Manual.isSelected(), payDate);
 		//	loadTableInfo
 		//loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), bpartner, docType, org, miniTable);
 		loadTableInfo(bi, payDate, paymentRule, onlyDue.isSelected(), onlyPositiveBalance.isSelected(), prePayment.isSelected(), Manual.isSelected(),m_Doctype, m_C_BPartner_ID, m_FTU_PaymentRequest_ID, org, miniTable);

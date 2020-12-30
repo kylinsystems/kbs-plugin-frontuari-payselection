@@ -310,7 +310,7 @@ public class FTUPaySelect extends FTUForm {
 		return data;
 	}
 	
-	public void prepareTable(IMiniTable miniTable,boolean isPrePayment,boolean isManual)
+	public void prepareTable(IMiniTable miniTable,boolean isPrePayment,boolean isManual, Timestamp dateDoc)
 	{
 		Properties ctx = Env.getCtx();
 		/**  prepare MiniTable
@@ -398,7 +398,8 @@ public class FTUPaySelect extends FTUForm {
 					//	WHERE
 					"i.IsSOTrx=? AND IsPaid='N'"
 					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)) > 0" //Check that AmountDue <> 0
-					+ " AND i.DocStatus IN ('CO','CL') AND pr.DocStatus = 'CO'",	//	additional where & order in loadTableInfo()
+					+ " AND i.DocStatus IN ('CO','CL') AND pr.DocStatus = 'CO'"
+					+ " AND pr.DateDoc <= ?",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 		else if(isPrePayment && !isManual)
@@ -469,7 +470,8 @@ public class FTUPaySelect extends FTUForm {
 					"i.IsSOTrx=? "
 					+ " AND i.C_Invoice_ID IS NULL "
 					+ " AND (prl.PayAmt-COALESCE(psl.PayAmt,0)) > 0" //Check that AmountDue <> 0
-					+ " AND i.DocStatus IN ('CO') AND pr.DocStatus = 'CO'",	//	additional where & order in loadTableInfo()
+					+ " AND i.DocStatus IN ('CO') AND pr.DocStatus = 'CO'"
+					+ " AND pr.DateDoc <= ?",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 		else if(isManual)
@@ -536,7 +538,8 @@ public class FTUPaySelect extends FTUForm {
 					+ " GROUP BY psl.FTU_PaymentRequestLine_ID) psl ON (prl.FTU_PaymentRequestLine_ID=psl.FTU_PaymentRequestLine_ID) "*/,
 					//	WHERE
 					"(prl.PayAmt-COALESCE(psl.PayAmt,0)) > 0" //Check that AmountDue <> 0
-					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType IN ('PRM','GLJ')",	//	additional where & order in loadTableInfo()
+					+ " AND pr.DocStatus IN ('CO') AND pr.DocStatus = 'CO' AND pr.RequestType IN ('PRM','GLJ')"
+					+ " AND pr.DateDoc <= ?",	//	additional where & order in loadTableInfo()
 					true, "pr");
 		}
 	}   //  dynInit
@@ -709,6 +712,7 @@ public class FTUPaySelect extends FTUForm {
 			pstmt.setTimestamp(index++, payDate);
 			if(!manual)
 				pstmt.setString(index++, isSOTrx);			//	IsSOTrx
+			pstmt.setTimestamp(index++, payDate);			// Pay Date
 			//pstmt.setInt(index++, m_AD_Client_ID);		//	Client
 			if (onlyDue)
 				pstmt.setTimestamp(index++, payDate);
@@ -721,6 +725,7 @@ public class FTUPaySelect extends FTUForm {
 			if (onlyPositiveBalance) {
 				if(!manual)
 					pstmt.setString(index++, isSOTrx);			//	IsSOTrx
+				pstmt.setTimestamp(index++, payDate);			// Pay Date
 				//pstmt.setInt(index++, m_AD_Client_ID);		//	Client
 				if (onlyDue)
 					pstmt.setTimestamp(index++, payDate);

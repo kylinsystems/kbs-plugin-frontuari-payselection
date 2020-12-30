@@ -529,7 +529,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					.append(" WHERE i.IsSOTrx='N' AND IsPaid='N'"
 					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
-					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
+					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
+					+ "  AND i.DateAcct <= ?");
 		}
 		else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_PurchaseOrder))
 		{
@@ -691,7 +692,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					.append(" WHERE i.IsSOTrx='Y' AND (COALESCE(vw.withholdingAmt,0)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0"
 					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
-					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
+					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
+					+ "  AND i.DateAcct <= ?");
 		}
 		if(C_BPartner_ID > 0)
 		{
@@ -716,6 +718,10 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 			pstmt.setTimestamp(index++, DateDoc);
 			pstmt.setInt(index++, Env.getAD_Client_ID(Env.getCtx()));
 			pstmt.setInt(index++, AD_Org_ID);
+			
+			if (X_FTU_PaymentRequest.REQUESTTYPE_APInvoice.equals(RequestType) || MFTUPaymentRequest.REQUESTTYPE_ARInvoice.equals(RequestType))
+				pstmt.setTimestamp(index++, DateDoc);
+			
 			rs = pstmt.executeQuery();
 			while (rs.next())
 			{
