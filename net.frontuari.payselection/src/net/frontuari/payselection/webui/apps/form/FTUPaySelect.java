@@ -493,11 +493,11 @@ public class FTUPaySelect extends FTUForm {
 					*/
 					new ColumnInfo(Msg.translate(ctx, "C_CurrencyTo_ID"), "prc.ISO_Code", KeyNamePair.class, true, false, "pr.C_Currency_ID"),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountDue"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
-							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' || pr.RequestType = 'PRM' THEN ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' OR pr.RequestType = 'PRM' THEN ?"
 							+ " ELSE glj.DateDoc END"
 						+ ",pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountDue", BigDecimal.class),
 					new ColumnInfo(Msg.getMsg(ctx, "AmountPay"), "currencyConvert(prl.PayAmt-COALESCE(psl.PayAmt,0),pr.C_Currency_ID, ?"
-							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' || pr.RequestType = 'PRM' THEN ?"
+							+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' OR pr.RequestType = 'PRM' THEN ?"
 							+ " ELSE glj.DateDoc END"
 						+ ",pr.C_ConversionType_ID, pr.AD_Client_ID,pr.AD_Org_ID) AS AmountPay", BigDecimal.class,false),
 					new ColumnInfo(Msg.translate(ctx, "C_Bank_ID"), "b.Name", String.class),
