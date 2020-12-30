@@ -600,13 +600,13 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "SUM(il.AmtSourceCr) AS GrandTotal,"	//	8
 					+ "currencyConvert(SUM(il.AmtSourceCr),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateDoc END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue," //9
 					+ "currencyConvert(SUM(il.AmtSourceCr),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateDoc END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay," //10
