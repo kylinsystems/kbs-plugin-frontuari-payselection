@@ -530,7 +530,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
-					+ "  AND i.DateAcct <= ?");
+					+ "  AND TRUNC(i.DateAcct, 'DD') <= ?");
 		}
 		else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_PurchaseOrder))
 		{
@@ -544,13 +544,13 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.GrandTotal,"	//	8
 					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) ,i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateOrdered END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)AS AmountDue, "	//	9
 					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateOrdered END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
@@ -633,7 +633,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 							+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
 							+ " AND il.Account_ID="+Account_ID);
 					//GROUP
-					groupBy.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code");
+					groupBy.append(" GROUP BY i.GL_Journal_ID,o.Name,i.DateDoc,bp.Name,dt.Name,i.DocumentNo,c.ISO_Code, bp.C_BPartner_ID");
 		}else if (RequestType.equals(MFTUPaymentRequest.REQUESTTYPE_ARInvoice)) {
 			sql.append(" i.C_Invoice_ID AS Record_ID, " //	1
 					+ "o.Name AS OrgName,"	//	2
@@ -649,13 +649,13 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11*/
 					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
 					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?"
 					//Add Conversion By Negotiation Type By Argenis Rodríguez 09-12-2020
-						+ ", CASE COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
+						+ ", CASE WHEN COALESCE(bp.TypeNegotiation, 'DP') = 'DP' THEN ?"
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
@@ -693,7 +693,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
-					+ "  AND i.DateAcct <= ?");
+					+ "  AND TRUNC(i.DateAcct, 'DD') <= ?");
 		}
 		if(C_BPartner_ID > 0)
 		{
