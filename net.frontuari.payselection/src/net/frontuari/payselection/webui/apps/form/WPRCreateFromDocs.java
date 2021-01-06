@@ -596,8 +596,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
-					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay, "	// 10
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay, "	// 10
 					+ "COALESCE((SELECT MAX('Y') FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
 					//	FROM
@@ -607,26 +607,27 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
-					+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
+					/*+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
-					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
-					+ " WHERE psl.IsActive='Y' "
-					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID) "  
+					+ " WHERE psl.IsActive='Y'"
+					+ " AND (psc.C_PaySelectionCheck_ID IS NULL OR psc.C_Payment_ID IS NULL) "
+					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "*/
 					+ " LEFT JOIN (SELECT prl.C_Invoice_ID,"
 					+ "	SUM(currencyConvert(prl.PayAmt,pr.C_Currency_ID,i.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM FTU_PaymentRequest pr "
 					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
 					+ " JOIN C_Invoice i on prl.C_Invoice_ID = i.C_Invoice_ID "
 					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
-					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
+					//+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
 					+ " GROUP BY prl.C_Invoice_ID) prl ON (i.C_Invoice_ID = prl.C_Invoice_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND IsPaid='N'"
-					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		}
@@ -640,8 +641,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "i.DocumentNo,"	//	6
 					+ "c.ISO_Code,"	//	7
 					+ "i.GrandTotal,"	//	8
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
-					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(ftuOrderOpen(i.C_Order_ID,i.C_OrderPaySchedule_ID)-ftuOrderDiscount(i.C_Order_ID,?,i.C_OrderPaySchedule_ID)-ftuOrderWriteOff(i.C_Order_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
 					+ "'N' AS IsTaxWithholding")
 					//	FROM
 					.append(" FROM FTU_Order_v i"
@@ -650,26 +651,27 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " INNER JOIN C_DocType dt ON (i.C_DocType_ID=dt.C_DocType_ID)"
 					+ " INNER JOIN C_Currency c ON (i.C_Currency_ID=c.C_Currency_ID)"
 					+ " INNER JOIN C_PaymentTerm p ON (i.C_PaymentTerm_ID=p.C_PaymentTerm_ID)"
-					+ " LEFT JOIN (SELECT psl.C_Order_ID,"
+					/*+ " LEFT JOIN (SELECT psl.C_Order_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Order i ON psl.C_Order_ID = i.C_Order_ID "
-					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID) "  
 					+ " WHERE psl.IsActive='Y' "
-					+ " GROUP BY psl.C_Order_ID) psl ON (i.C_Order_ID=psl.C_Order_ID) "
+					+ " AND (psc.C_PaySelectionCheck_ID IS NULL OR psc.C_Payment_ID IS NULL) "
+					+ " GROUP BY psl.C_Order_ID) psl ON (i.C_Order_ID=psl.C_Order_ID) "*/
 					+ " LEFT JOIN (SELECT prl.C_Order_ID,"
 					+ "	SUM(currencyConvert(prl.PayAmt,pr.C_Currency_ID,i.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM FTU_PaymentRequest pr "
 					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
 					+ " JOIN C_Order i on prl.C_Order_ID = i.C_Order_ID "
 					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
-					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
+					//+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
 					+ " GROUP BY prl.C_Order_ID) prl ON (i.C_Order_ID = prl.C_Order_ID) ")
 					//	WHERE
 					.append(" WHERE i.IsSOTrx='N' AND i.C_Invoice_ID IS NULL "
-					+ " AND (ftuOrderOpen(i.C_Order_ID, i.C_OrderPaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
+					+ " AND (ftuOrderOpen(i.C_Order_ID, i.C_OrderPaySchedule_ID)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ " AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
 		}else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_GLJournal)) {
@@ -725,8 +727,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ "currencyConvert(invoiceOpen(i.C_Invoice_ID,i.C_InvoicePaySchedule_ID)-invoiceDiscount(i.C_Invoice_ID,?,i.C_InvoicePaySchedule_ID)-invoiceWriteOff(i.C_Invoice_ID),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0) AS AmountPay,"	// 10
 					+ "COALESCE((SELECT 'Y' FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11*/
-					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
-					+ "currencyConvert(vw.withholdingAmt-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
+					+ "currencyConvert(vw.withholdingAmt/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountDue, "	//	9
+					+ "currencyConvert(vw.withholdingAmt/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0),i.C_Currency_ID, ?,?,i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
 					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
@@ -739,25 +741,26 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 						+ " JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
 						+ " JOIN C_Invoice winv ON iw.C_Invoice_ID=winv.C_Invoice_ID "
 						+ " WHERE vw.DocStatus IN ('CO','CL','BR') GROUP BY iw.C_Invoice_ID) vw ON (vw.C_Invoice_ID=i.C_Invoice_ID)"
-					+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
+					/*+ " LEFT JOIN (SELECT psl.C_Invoice_ID,"
 					+ "	SUM(currencyConvert(psl.PayAmt,cb.C_Currency_ID,i.C_Currency_ID,ps.PayDate,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM C_PaySelectionLine psl "
 					+ "	INNER JOIN C_PaySelection ps on psl.C_PaySelection_ID = ps.C_PaySelection_ID "
 					+ "	INNER JOIN C_BankAccount cb on ps.C_BankAccount_ID = cb.C_BankAccount_ID "
 					+ " INNER JOIN C_Invoice i ON psl.C_Invoice_ID = i.C_Invoice_ID "
-					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID AND psc.C_Payment_ID IS NULL) "  
+					+ " LEFT JOIN C_PaySelectionCheck psc ON (psl.C_PaySelectionCheck_ID=psc.C_PaySelectionCheck_ID) "  
 					+ " WHERE psl.IsActive='Y' "
-					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "
+					+ " AND (psc.C_PaySelectionCheck_ID IS NULL OR psc.C_Payment_ID IS NULL) "
+					+ " GROUP BY psl.C_Invoice_ID) psl ON (i.C_Invoice_ID=psl.C_Invoice_ID) "*/
 					+ " LEFT JOIN (SELECT prl.C_Invoice_ID,"
 					+ "	SUM(currencyConvert(prl.PayAmt,pr.C_Currency_ID,i.C_Currency_ID,pr.DateDoc,i.C_ConversionType_ID,i.AD_Client_ID,i.AD_Org_ID)) AS PayAmt "
 					+ "	FROM FTU_PaymentRequest pr "
 					+ " JOIN FTU_PaymentRequestLine prl on pr.FTU_PaymentRequest_ID = prl.FTU_PaymentRequest_ID "
 					+ " JOIN C_Invoice i on prl.C_Invoice_ID = i.C_Invoice_ID "
 					+ " WHERE pr.DocStatus NOT IN ('VO','RE') "
-					+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
+					//+ " AND NOT EXISTS (SELECT 1 FROM C_PaySelectionLine psl WHERE prl.FTU_PaymentRequestLine_ID = psl.FTU_PaymentRequestLine_ID AND psl.IsActive='Y') "
 					+ " GROUP BY prl.C_Invoice_ID) prl ON (i.C_Invoice_ID = prl.C_Invoice_ID) ")
 					//	WHERE
-					.append(" WHERE i.IsSOTrx='Y' AND (COALESCE(vw.withholdingAmt,0)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0"
+					.append(" WHERE i.IsSOTrx='Y' AND (COALESCE(vw.withholdingAmt,0)/*-COALESCE(psl.PayAmt,0)*/-COALESCE(prl.PayAmt,0)) > 0"
 					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?");
@@ -770,14 +773,14 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(", ar.Value AS DocumentNo")
 				.append(", cc.ISO_Code")
 				.append(", i.PayAmt AS GrandTotal")
-				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
-				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID)- COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID) /*- COALESCE(psl.PayAmt, 0)*/ - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountDue")
+				.append(", COALESCE(currencyconvert(FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID) /*- COALESCE(psl.PayAmt, 0)*/ - COALESCE(prl.PayAmt, 0), ar.C_Currency_ID, ?, ?, ar.C_ConversionType_ID, ar.AD_Client_ID, ar.AD_Org_ID), 0) AS AmountPay")
 			.append(" FROM COP_AssemblyRecordLine i")
 			.append(" INNER JOIN COP_AssemblyRecord ar ON (ar.COP_AssemblyRecord_ID = i.COP_AssemblyRecord_ID)")
 			.append(" INNER JOIN AD_Org ao ON (ao.AD_Org_ID = ar.AD_Org_ID)")
 			.append(" INNER JOIN C_BPartner bp ON (bp.C_BPartner_ID = i.C_BPartner_ID)")
 			.append(" INNER JOIN C_Currency cc ON (cc.C_Currency_ID = ar.C_Currency_ID)")
-			.append(" LEFT JOIN (")
+			/*.append(" LEFT JOIN (")
 				.append("SELECT ")
 					.append("arl_1.COP_AssemblyRecordLine_ID")
 					.append(", SUM(COALESCE(currencyconvert(psl_1.PayAmt, cba.C_Currency_ID, ar_1.C_Currency_ID, ps_1.PayDate, ar_1.C_ConversionType_ID"
@@ -790,9 +793,10 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(" INNER JOIN C_PaySelection ps_1 ON (ps_1.C_PaySelection_ID = psl_1.C_PaySelection_ID)")
 				.append(" INNER JOIN C_BankAccount cba ON (cba.C_BankAccount_ID = ps_1.C_BankAccount_ID)")
 				.append(" LEFT JOIN C_PaySelectionCheck psc_1 ON (psc_1.C_PaySelectionCheck_ID = psl_1.C_PaySelectionCheck_ID)")
-				.append(" WHERE /*psc_1.C_Payment_ID IS NULL AND*/ psl_1.IsActive = 'Y'")
+				.append(" WHERE psl_1.IsActive = 'Y'")
+				.append(" AND (psc_1.C_PaySelectionCheck_ID IS NULL OR psc_1.C_Payment_ID IS NULL) ")
 				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
-			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")
+			.append(") psl ON (psl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")*/
 			.append(" LEFT JOIN (")
 				.append("SELECT")
 					.append(" arl_1.COP_AssemblyRecordLine_ID")
@@ -802,13 +806,13 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				.append(" INNER JOIN COP_AssemblyRecordLine arl_1 ON (arl_1.COP_AssemblyRecordLine_ID = prl_1.COP_AssemblyRecordLine_ID)")
 				.append(" INNER JOIN COP_AssemblyRecord ar_1 ON (ar_1.COP_AssemblyRecord_ID = arl_1.COP_AssemblyRecord_ID)")
 				.append(" WHERE pr_1.DocStatus NOT IN ('VO', 'RE')"
-						+ " AND NOT EXISTS(SELECT 1 FROM C_PaySelectionLine psl_1 WHERE psl_1.FTU_PaymentRequestLine_ID = prl_1.FTU_PaymentRequestLine_ID"
-						+ " AND psl_1.IsActive = 'Y')")
+						/*+ " AND NOT EXISTS(SELECT 1 FROM C_PaySelectionLine psl_1 WHERE psl_1.FTU_PaymentRequestLine_ID = prl_1.FTU_PaymentRequestLine_ID"
+						+ " AND psl_1.IsActive = 'Y')"*/)
 				.append(" GROUP BY arl_1.COP_AssemblyRecordLine_ID")
 			.append(") prl ON (prl.COP_AssemblyRecordLine_ID = i.COP_AssemblyRecordLine_ID)")
 			.append(" WHERE i.IsPaid = 'N'")
-			.append(" AND (FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID) - COALESCE(psl.PayAmt, 0) - COALESCE(prl.PayAmt, 0)) > 0")
-			.append(" AND ar.DocStatus IN ('CO', 'CL')")
+			.append(" AND (FTU_AssemblyRecordOpen(i.COP_AssemblyRecordLine_ID) /*- COALESCE(psl.PayAmt, 0)*/ - COALESCE(prl.PayAmt, 0)) > 0")
+			.append(" AND ar.DocStatus IN ('CO', 'IA')")
 			.append(" AND ar.AD_Client_ID = ? AND ar.AD_Org_ID = ?");
 		}
 		if(C_BPartner_ID > 0)
