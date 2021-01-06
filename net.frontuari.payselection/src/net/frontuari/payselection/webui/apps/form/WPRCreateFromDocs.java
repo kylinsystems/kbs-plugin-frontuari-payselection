@@ -530,7 +530,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
-					+ "  AND TRUNC(i.DateAcct, 'DD') <= ?");
+					+ "  AND TRUNC(i.DateAcct, 'DD') <= TRUNC(?::TIMESTAMP,'DD')");
 		}
 		else if (RequestType.equals(X_FTU_PaymentRequest.REQUESTTYPE_PurchaseOrder))
 		{
@@ -693,7 +693,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					//+ " AND (invoiceOpen(i.C_Invoice_ID, i.C_InvoicePaySchedule_ID)-COALESCE(psl.PayAmt,0)-COALESCE(prl.PayAmt,0)) > 0" //Check that AmountDue <> 0
 					+ " AND i.DocStatus IN ('CO','CL')"
 					+ "  AND i.AD_Client_ID=? AND i.AD_Org_ID=?"
-					+ "  AND TRUNC(i.DateAcct, 'DD') <= ?");
+					+ "  AND TRUNC(i.DateAcct, 'DD') <= TRUNC(?::TIMESTAMP,'DD')");
 		}
 		if(C_BPartner_ID > 0)
 		{
