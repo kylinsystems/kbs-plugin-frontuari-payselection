@@ -205,6 +205,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 		miniTable.setColumnClass(8, BigDecimal.class, true);	//  8-DueAmt
 		miniTable.setColumnClass(9, BigDecimal.class, false);	//  9-PayAmt
 		miniTable.setColumnClass(10, Boolean.class, false);      //  10-HasWithholding
+		miniTable.setColumnClass(11, Timestamp.class, true);	// 11-DateAcct
 		//  Table UI
 		miniTable.autoSize();
 	}
@@ -224,6 +225,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 	    columnNames.add(Msg.getElement(Env.getCtx(), "DueAmt"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "PayAmt"));
 	    columnNames.add(Msg.getElement(Env.getCtx(), "IsTaxWithholding"));
+	    columnNames.add(Msg.getElement(Env.getCtx(), "DateAcct"));
 
 	    return columnNames;
 	}
@@ -500,7 +502,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay, "	// 10
 					+ "COALESCE((SELECT MAX('Y') FROM LCO_InvoiceWithholding iw JOIN LVE_VoucherWithholding vw ON iw.LVE_VoucherWithholding_ID=vw.LVE_VoucherWithholding_ID"
-					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding") //11
+					+ "	 WHERE iw.C_Invoice_ID=i.C_Invoice_ID AND vw.DocStatus IN ('CO','CL','BR')),'N') AS IsTaxWithholding," //11
+					+ "i.DateAcct")
 					//	FROM
 					.append(" FROM C_Invoice_v i"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
@@ -554,7 +557,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 						+ " ELSE i.DateOrdered END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	//	10
-					+ "'N' AS IsTaxWithholding")
+					+ "'N' AS IsTaxWithholding,"
+					+ "i.DateAcct")
 					//	FROM
 					.append(" FROM FTU_Order_v i"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
@@ -610,7 +614,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 						+ " ELSE i.DateDoc END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay," //10
-					+ "'N' AS IsTaxWithholding")//11
+					+ "'N' AS IsTaxWithholding,"
+					+ "i.DateAcct")//11
 					// FROM 
 					.append(" FROM GL_Journal i"
 							+ " INNER JOIN GL_JournalLine il ON i.GL_Journal_ID=il.GL_Journal_ID"
@@ -659,7 +664,8 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 						+ " ELSE i.DateInvoiced END"
 					//End By Argenis Rodríguez
 					+ ",i.C_ConversionType_ID, i.AD_Client_ID,i.AD_Org_ID) AS AmountPay,"	// 10
-					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding") //11
+					+ " CASE WHEN vw.C_Invoice_ID > 0 THEN 'Y' ELSE 'N' END AS IsTaxWithholding,"
+					+ "i.DateAcct") //11
 					//	FROM
 					.append(" FROM C_Invoice_v i"
 					+ " INNER JOIN AD_Org o ON (i.AD_Org_ID=o.AD_Org_ID)"
@@ -738,6 +744,7 @@ public class WPRCreateFromDocs extends CreateFrom implements EventListener<Event
 				line.add(rs.getBigDecimal(9));		// 	8-DueAmt
 				line.add(rs.getBigDecimal(10));		// 	9-PayAmt
 				line.add(rs.getString(11).equals("Y"));		// 	10-IsTaxWithholding
+				line.add(rs.getTimestamp(12)); //11 - DateAcct
 				data.add(line);
 			}
 		}
