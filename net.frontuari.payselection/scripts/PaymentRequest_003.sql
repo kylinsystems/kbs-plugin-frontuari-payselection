@@ -72,7 +72,7 @@ AS SELECT t.ad_client_id,
             glj.ad_org_id,
             glj.documentno,
             glj.gl_journal_id AS record_id,
-            glj.c_bpartner_id,
+            0 AS C_BPartner_ID,
             glj.datedoc,
             glj.dateacct,
             sum(gljl.amtsourcecr) - COALESCE(t_1.payamt, 0::numeric) AS openamt,
@@ -88,15 +88,15 @@ AS SELECT t.ad_client_id,
             glj.c_conversiontype_id
            FROM gl_journal glj
              JOIN gl_journalline gljl ON glj.gl_journal_id = gljl.gl_journal_id
-             JOIN ( SELECT DISTINCT dt.account_id
+             /*JOIN ( SELECT DISTINCT dt.account_id
                    FROM c_doctype dt
-                  WHERE dt.isactive = 'Y'::bpchar) dtacc ON dtacc.account_id = gljl.account_id
+                  WHERE dt.isactive = 'Y'::bpchar) dtacc ON dtacc.account_id = gljl.account_id*/
              LEFT JOIN ( SELECT prl.gl_journal_id,
                     sum(prl.payamt) AS payamt
                    FROM ftu_paymentrequestline prl
                      JOIN ftu_paymentrequest pr ON pr.ftu_paymentrequest_id = prl.ftu_paymentrequest_id
                   WHERE pr.docstatus::text = ANY (ARRAY['CO'::character varying::text, 'CL'::character varying::text])
                   GROUP BY prl.gl_journal_id) t_1 ON t_1.gl_journal_id = glj.gl_journal_id
-          WHERE glj.c_bpartner_id IS NOT NULL
-          GROUP BY glj.ad_client_id, glj.ad_org_id, glj.documentno, glj.gl_journal_id, glj.c_bpartner_id, glj.datedoc, glj.dateacct, glj.c_doctype_id, glj.docstatus, glj.c_currency_id, glj.c_conversiontype_id, t_1.payamt) t
+          --WHERE glj.c_bpartner_id IS NOT NULL
+          GROUP BY glj.ad_client_id, glj.ad_org_id, glj.documentno, glj.gl_journal_id/*, glj.c_bpartner_id*/, glj.datedoc, glj.dateacct, glj.c_doctype_id, glj.docstatus, glj.c_currency_id, glj.c_conversiontype_id, t_1.payamt) t
      JOIN c_bpartner bp ON t.c_bpartner_id = bp.c_bpartner_id;
